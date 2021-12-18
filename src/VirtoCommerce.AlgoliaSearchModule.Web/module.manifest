@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<module xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <id>VirtoCommerce.AlgoliaSearch</id>
+  <version>1.0.0</version>
+  <version-tag />
+  <platformVersion>3.68.0</platformVersion>
+  <title>Algolia Search module</title>
+  <description>Indexed search functionality with Algolia Search Engine</description>
+  <authors>
+    <author>Alexander Siniouguine</author>
+  </authors>
+  <owners>
+    <owner>Virto Commerce</owner>
+  </owners>
+  <projectUrl>https://github.com/VirtoCommerce/vc-module-algolia-search</projectUrl>
+  <iconUrl>Modules/$(VirtoCommerce.AlgoliaSearch)/Content/logo.png</iconUrl>
+  <requireLicenseAcceptance>false</requireLicenseAcceptance>
+  <releaseNotes>Third version.</releaseNotes>
+  <copyright>Copyright © 2020 - 2021 Virto Commerce. All rights reserved</copyright>
+  <tags>elastic search</tags>
+  <assemblyFile>VirtoCommerce.AlgoliaSearchModule.Web.dll</assemblyFile>
+  <moduleType>VirtoCommerce.AlgoliaSearchModule.Web.Module, VirtoCommerce.AlgoliaSearchModule.Web</moduleType>
+  <dependencies>
+    <dependency id="VirtoCommerce.Search" version="3.15.0" />
+  </dependencies>
+  <groups>
+    <group>commerce</group>
+  </groups>
+  <useFullTypeNameInSwagger>false</useFullTypeNameInSwagger>
+</module>
