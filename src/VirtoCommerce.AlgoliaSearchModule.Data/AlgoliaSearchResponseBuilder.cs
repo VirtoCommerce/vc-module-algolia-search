@@ -1,6 +1,5 @@
 //using System.Collections.Generic;
 //using System.Linq;
-//using Nest;
 //using Newtonsoft.Json.Linq;
 //using VirtoCommerce.SearchModule.Core.Model;
 //using SearchRequest = VirtoCommerce.SearchModule.Core.Model.SearchRequest;
@@ -9,7 +8,7 @@
 //{
 //    public static class AlgoliaSearchResponseBuilder
 //    {
-//        public static SearchResponse ToSearchResponse(this ISearchResponse<SearchDocument> response, SearchRequest request)
+//        public static SearchResponse ToSearchResponse(this SearchResponse<SearchDocument> response, SearchRequest request)
 //        {
 //            var result = new SearchResponse
 //            {

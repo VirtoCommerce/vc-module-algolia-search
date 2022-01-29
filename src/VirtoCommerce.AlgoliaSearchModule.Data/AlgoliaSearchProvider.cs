@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Algolia.Search.Clients;
 using Algolia.Search.Models.Common;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json.Linq;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Settings;
 using VirtoCommerce.SearchModule.Core.Exceptions;
@@ -94,32 +95,34 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
         public virtual async Task<SearchResponse> SearchAsync(string documentType, SearchRequest request)
         {
-            throw new NotImplementedException();
-            //var indexName = GetIndexName(documentType);
+            var indexName = GetIndexName(documentType);
 
-            //try
-            //{
-            //    var availableFields = await GetMappingAsync(indexName);
-            //    var indexClient = GetSearchIndexClient(indexName);
+            try
+            {
+                var indexClient = Client.InitIndex(indexName);
 
-            //    var providerRequests = AzureSearchRequestBuilder.BuildRequest(request, indexName, documentType, availableFields);
-            //    var providerResponses = await Task.WhenAll(providerRequests.Select(r => indexClient.Documents.SearchAsync(r?.SearchText, r?.SearchParameters)));
+                var providerQuery = AlgoliaSearchRequestBuilder.BuildRequest(request, indexName);
+                var response = await indexClient.SearchAsync<SearchDocument>(providerQuery);
+                //var providerResponses = await Task.WhenAll(providerRequests.Select(r => indexClient.Documents.SearchAsync(r?.SearchText, r?.SearchParameters)));
 
-            //    // Copy aggregation ID from request to response
-            //    var searchResults = providerResponses.Select((response, i) => new AzureSearchResult
-            //    {
-            //        AggregationId = providerRequests[i].AggregationId,
-            //        ProviderResponse = response,
-            //    })
-            //    .ToArray();
+                /*
+                // Copy aggregation ID from request to response
+                var searchResults = providerResponses.Select((response, i) => new AzureSearchResult
+                {
+                    AggregationId = providerRequests[i].AggregationId,
+                    ProviderResponse = response,
+                })
+                .ToArray();
+                */
 
-            //    var result = searchResults.ToSearchResponse(request, documentType);
-            //    return result;
-            //}
-            //catch (Exception ex)
-            //{
-            //    throw new SearchException(ex.Message, ex);
-            //}
+                return null;
+                //var result = searchResults.ToSearchResponse(request, documentType);
+                //return result;
+            }
+            catch (Exception ex)
+            {
+                throw new SearchException(ex.Message, ex);
+            }
         }
 
         protected virtual AlgoliaIndexDocument ConvertToProviderDocument(IndexDocument document, string documentType)
