@@ -115,9 +115,8 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                 .ToArray();
                 */
 
-                return null;
-                //var result = searchResults.ToSearchResponse(request, documentType);
-                //return result;
+                var result = response.ToSearchResponse(request);
+                return result;
             }
             catch (Exception ex)
             {
