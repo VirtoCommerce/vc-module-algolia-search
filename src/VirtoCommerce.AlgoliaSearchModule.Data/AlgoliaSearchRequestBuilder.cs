@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Algolia.Search.Models.Search;
@@ -12,12 +13,14 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
         // Used to map 'score' sort field to Elastic Search _score sorting field 
         private const string Score = "score";
 
-        public static Query BuildRequest(SearchRequest request, string indexName)
+        public Query BuildRequest(SearchRequest request, string indexName)
         {
             var query = new Query(request.SearchKeywords)
             {
                 Offset = request?.Skip,
-                Length = request?.Take
+                Length = request?.Take,
+                RestrictSearchableAttributes = request?.SearchFields?.ToList(),
+                FacetFilters = GetFilters(request)
             };
 
             /*
@@ -45,6 +48,13 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             */
 
             return query;
+        }
+
+        private IEnumerable<IEnumerable<string>> GetFilters(SearchRequest request)
+        {
+            var filter = GetFilterQueryRecursive(request.Filter);
+            var filters = new List<List<string>> { filter };
+            return filters;
         }
 
 
@@ -127,47 +137,47 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
         //    return GetFilterQueryRecursive(request?.Filter, availableFields);
         //}
 
-        //protected virtual QueryContainer GetFilterQueryRecursive(IFilter filter, Properties<IProperties> availableFields)
-        //{
-        //    QueryContainer result = null;
+        protected virtual List<string> GetFilterQueryRecursive(IFilter filter)
+        {
+            List<string> result = null;
 
-        //    switch (filter)
-        //    {
-        //        case IdsFilter idsFilter:
-        //            result = CreateIdsFilter(idsFilter);
-        //            break;
+            switch (filter)
+            {
+                //case IdsFilter idsFilter:
+                //    result = CreateIdsFilter(idsFilter);
+                //    break;
 
-        //        case TermFilter termFilter:
-        //            result = CreateTermFilter(termFilter, availableFields);
-        //            break;
+                case TermFilter termFilter:
+                    result = CreateTermFilter(termFilter);
+                    break;
 
-        //        case RangeFilter rangeFilter:
-        //            result = CreateRangeFilter(rangeFilter);
-        //            break;
+                //case RangeFilter rangeFilter:
+                //    result = CreateRangeFilter(rangeFilter);
+                //    break;
 
-        //        case GeoDistanceFilter geoDistanceFilter:
-        //            result = CreateGeoDistanceFilter(geoDistanceFilter);
-        //            break;
+                //case GeoDistanceFilter geoDistanceFilter:
+                //    result = CreateGeoDistanceFilter(geoDistanceFilter);
+                //    break;
 
-        //        case NotFilter notFilter:
-        //            result = CreateNotFilter(notFilter, availableFields);
-        //            break;
+                //case NotFilter notFilter:
+                //    result = CreateNotFilter(notFilter, availableFields);
+                //    break;
 
-        //        case AndFilter andFilter:
-        //            result = CreateAndFilter(andFilter, availableFields);
-        //            break;
+                //case AndFilter andFilter:
+                //    result = CreateAndFilter(andFilter, availableFields);
+                //    break;
 
-        //        case OrFilter orFilter:
-        //            result = CreateOrFilter(orFilter, availableFields);
-        //            break;
+                //case OrFilter orFilter:
+                //    result = CreateOrFilter(orFilter, availableFields);
+                //    break;
 
-        //        case WildCardTermFilter wildcardTermFilter:
-        //            result = CreateWildcardTermFilter(wildcardTermFilter);
-        //            break;
-        //    }
+                //case WildCardTermFilter wildcardTermFilter:
+                //    result = CreateWildcardTermFilter(wildcardTermFilter);
+                //    break;
+            }
 
-        //    return result;
-        //}
+            return result;
+        }
 
         //protected virtual QueryContainer CreateIdsFilter(IdsFilter idsFilter)
         //{
@@ -190,27 +200,17 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
         //    };
         //}
 
-        //protected virtual QueryContainer CreateTermFilter(TermFilter termFilter, Properties<IProperties> availableFields)
-        //{
-        //    var termValues = termFilter.Values;
+        protected virtual List<string> CreateTermFilter(TermFilter termFilter)
+        {
+            var result = new List<string>();
 
-        //    var field = availableFields.Where(kvp => kvp.Key.Name.EqualsInvariant(termFilter.FieldName)).Select(kvp => kvp.Value).FirstOrDefault();
-        //    if (field?.Type?.EqualsInvariant("boolean") == true)
-        //    {
-        //        termValues = termValues.Select(v => v switch
-        //        {
-        //            "1" => "true",
-        //            "0" => "false",
-        //            _ => v.ToLowerInvariant()
-        //        }).ToArray();
-        //    }
+            foreach (var val in termFilter.Values)
+            {
+                result.Add($"{termFilter.FieldName}:{val}");
+            }
 
-        //    return new TermsQuery
-        //    {
-        //        Field = AlgoliaSearchHelper.ToElasticFieldName(termFilter.FieldName),
-        //        Terms = termValues
-        //    };
-        //}
+            return result;
+        }
 
         //protected virtual QueryContainer CreateRangeFilter(RangeFilter rangeFilter)
         //{

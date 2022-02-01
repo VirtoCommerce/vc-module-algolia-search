@@ -101,7 +101,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             {
                 var indexClient = Client.InitIndex(indexName);
 
-                var providerQuery = AlgoliaSearchRequestBuilder.BuildRequest(request, indexName);
+                var providerQuery = new AlgoliaSearchRequestBuilder().BuildRequest(request, indexName);
                 var response = await indexClient.SearchAsync<SearchDocument>(providerQuery);
                 //var providerResponses = await Task.WhenAll(providerRequests.Select(r => indexClient.Documents.SearchAsync(r?.SearchText, r?.SearchParameters)));
 
