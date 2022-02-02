@@ -9,8 +9,29 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
 {
     [Trait("Category", "CI")]
     [Trait("Category", "IntegrationTest")]
-    public class AlgoliaSearchTests : SearchProviderTests
+    public class AlgoliaSearchTests : SearchProviderTests, IDisposable
     {
+        public AlgoliaSearchTests()
+        {
+            var provider = GetSearchProvider();
+
+            // Delete index
+            provider.DeleteIndexAsync(DocumentType).Wait();
+
+            // Create index and add documents
+            var primaryDocuments = GetPrimaryDocuments();
+
+            var response = provider.IndexAsync(DocumentType, primaryDocuments).Result;
+            var secondaryDocuments = GetSecondaryDocuments();
+            response = provider.IndexAsync(DocumentType, secondaryDocuments).Result;
+        }
+
+        public void Dispose()
+        {
+            var provider = GetSearchProvider();
+            provider.DeleteIndexAsync(DocumentType).Wait();
+        }
+
         protected override ISearchProvider GetSearchProvider()
         {
             var appId = Environment.GetEnvironmentVariable("AlgoliaAppId");

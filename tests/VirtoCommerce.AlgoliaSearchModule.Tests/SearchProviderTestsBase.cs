@@ -47,8 +47,8 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
             doc.Add(new IndexDocumentField("Content", name) { IsRetrievable = true, IsSearchable = true, IsCollection = true });
             doc.Add(new IndexDocumentField("Content", color) { IsRetrievable = true, IsSearchable = true, IsCollection = true });
 
-            doc.Add(new IndexDocumentField("Code", id) { IsRetrievable = true, IsFilterable = true });
-            doc.Add(new IndexDocumentField("Name", name) { IsRetrievable = true, IsFilterable = true });
+            doc.Add(new IndexDocumentField("Code", id) { IsRetrievable = true, IsSearchable = true });
+            doc.Add(new IndexDocumentField("Name", name) { IsRetrievable = true, IsSearchable = true });
             doc.Add(new IndexDocumentField("Color", color) { IsRetrievable = true, IsFilterable = true });
             doc.Add(new IndexDocumentField("Size", size) { IsRetrievable = true, IsFilterable = true });
             doc.Add(new IndexDocumentField("Date", DateTime.Parse(date)) { IsRetrievable = true, IsFilterable = true });

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Algolia.Search.Clients;
 using Algolia.Search.Models.Common;
+using Algolia.Search.Models.Settings;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using VirtoCommerce.Platform.Core.Common;
@@ -67,7 +68,61 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
         {
             var indexName = GetIndexName(documentType);
             var providerDocuments = documents.Select(document => ConvertToProviderDocument(document, documentType)).ToList();
+
+            //var indexExists = await IndexExistsAsync(documentType);
             var index = Client.InitIndex(indexName);
+
+            // get current setting, so we can update them with new fields if needed
+            var settings = await index.ExistsAsync() ? await index.GetSettingsAsync() : new IndexSettings();
+
+            // define searchable attributes
+            foreach(var document in documents)
+            {
+                foreach (var field in document.Fields.OrderBy(f => f.Name))
+                {
+                    if (field.IsSearchable)
+                    {
+                        if (settings.SearchableAttributes == null)
+                        {
+                            settings.SearchableAttributes = new List<string>();
+                        }
+
+                        if (!settings.SearchableAttributes.Contains(field.Name))
+                        {
+                            settings.SearchableAttributes.Add(field.Name);
+                        }
+                    }
+
+                    if (field.IsFilterable)
+                    {
+                        if (settings.AttributesForFaceting == null)
+                        {
+                            settings.AttributesForFaceting = new List<string>();
+                        }
+
+                        if (!settings.AttributesForFaceting.Contains(field.Name))
+                        {
+                            settings.AttributesForFaceting.Add(field.Name);
+                        }
+                    }
+
+                    if (field.IsRetrievable)
+                    {
+                        if (settings.AttributesToRetrieve == null)
+                        {
+                            settings.AttributesToRetrieve = new List<string>();
+                        }
+
+                        if (!settings.AttributesToRetrieve.Contains(field.Name))
+                        {
+                            settings.AttributesToRetrieve.Add(field.Name);
+                        }
+                    }
+                }
+
+            }
+            await index.SetSettingsAsync(settings, forwardToReplicas: true);
+
             var response = await index.SaveObjectsAsync(providerDocuments);
             return CreateIndexingResult(response);
         }
@@ -154,9 +209,11 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                 }
                 else
                 {
+                    var isCollection = field.IsCollection || field.Values.Count > 1;
+
                     // TODO: handle GEO POINT
                     var point = field.Value as GeoPoint;
-                    var value = field.Value;
+                    var value = isCollection ? field.Values : field.Value;
 
                     result.Add(fieldName, value);
                 }
