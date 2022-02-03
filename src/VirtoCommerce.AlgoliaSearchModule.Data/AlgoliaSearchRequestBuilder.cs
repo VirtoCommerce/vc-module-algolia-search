@@ -206,7 +206,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
             foreach (var val in termFilter.Values)
             {
-                result.Add($"{termFilter.FieldName}:{val}");
+                result.Add($"{AlgoliaSearchHelper.ToAlgoliaFieldName(termFilter.FieldName)}:{val.ToLowerInvariant()}");
             }
 
             return result;

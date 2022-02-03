@@ -10,8 +10,6 @@ using VirtoCommerce.SearchModule.Core.Services;
 
 namespace VirtoCommerce.AlgoliaSearchModule.Tests
 {
-    
-
     public abstract class SearchProviderTestsBase
     {
         protected abstract ISearchProvider GetSearchProvider();
@@ -79,7 +77,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
             // Adds extra fields to test mapping updates for indexer
             if (name2 != null)
             {
-                doc.Add(new IndexDocumentField("Name 2", name2) { IsRetrievable = true, IsFilterable = true });
+                doc.Add(new IndexDocumentField("Name 2", name2) { IsRetrievable = true, IsSearchable = true });
             }
 
             if (date2 != null)
@@ -87,7 +85,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
                 doc.Add(new IndexDocumentField("Date (2)", date2) { IsRetrievable = true, IsFilterable = true });
             }
 
-            doc.Add(new IndexDocumentField("__obj", obj) { IsRetrievable = true, IsFilterable = true });
+            doc.Add(new IndexDocumentField("__obj", obj) { IsRetrievable = true, IsFilterable = false });
 
             return doc;
         }

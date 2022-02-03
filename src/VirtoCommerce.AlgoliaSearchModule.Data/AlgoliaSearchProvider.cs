@@ -80,6 +80,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             {
                 foreach (var field in document.Fields.OrderBy(f => f.Name))
                 {
+                    var fieldName = AlgoliaSearchHelper.ToAlgoliaFieldName(field.Name);
                     if (field.IsSearchable)
                     {
                         if (settings.SearchableAttributes == null)
@@ -87,9 +88,9 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                             settings.SearchableAttributes = new List<string>();
                         }
 
-                        if (!settings.SearchableAttributes.Contains(field.Name))
+                        if (!settings.SearchableAttributes.Contains(fieldName))
                         {
-                            settings.SearchableAttributes.Add(field.Name);
+                            settings.SearchableAttributes.Add(fieldName);
                         }
                     }
 
@@ -100,9 +101,9 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                             settings.AttributesForFaceting = new List<string>();
                         }
 
-                        if (!settings.AttributesForFaceting.Contains(field.Name))
+                        if (!settings.AttributesForFaceting.Contains(fieldName))
                         {
-                            settings.AttributesForFaceting.Add(field.Name);
+                            settings.AttributesForFaceting.Add(fieldName);
                         }
                     }
 
@@ -113,9 +114,9 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                             settings.AttributesToRetrieve = new List<string>();
                         }
 
-                        if (!settings.AttributesToRetrieve.Contains(field.Name))
+                        if (!settings.AttributesToRetrieve.Contains(fieldName))
                         {
-                            settings.AttributesToRetrieve.Add(field.Name);
+                            settings.AttributesToRetrieve.Add(fieldName);
                         }
                     }
                 }
@@ -187,7 +188,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
             foreach (var field in document.Fields.OrderBy(f => f.Name))
             {
-                var fieldName = field.Name;
+                var fieldName = AlgoliaSearchHelper.ToAlgoliaFieldName(field.Name);
 
                 if (result.ContainsKey(fieldName))
                 {

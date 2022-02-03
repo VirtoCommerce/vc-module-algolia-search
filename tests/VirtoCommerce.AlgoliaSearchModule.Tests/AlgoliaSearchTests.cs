@@ -16,7 +16,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
             var provider = GetSearchProvider();
 
             // Delete index
-            provider.DeleteIndexAsync(DocumentType).Wait();
+            // provider.DeleteIndexAsync(DocumentType).Wait();
 
             // Create index and add documents
             var primaryDocuments = GetPrimaryDocuments();
@@ -28,8 +28,8 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
 
         public void Dispose()
         {
-            var provider = GetSearchProvider();
-            provider.DeleteIndexAsync(DocumentType).Wait();
+            //var provider = GetSearchProvider();
+            //provider.DeleteIndexAsync(DocumentType).Wait();
         }
 
         protected override ISearchProvider GetSearchProvider()

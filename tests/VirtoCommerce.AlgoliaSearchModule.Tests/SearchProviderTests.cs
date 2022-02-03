@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 using VirtoCommerce.AlgoliaSearchModule.Data;
 using VirtoCommerce.SearchModule.Core.Model;
 using Xunit;
@@ -82,9 +83,9 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
             var document = response?.Documents?.FirstOrDefault();
             Assert.NotNull(document);
 
-            var stringCollection = document["catalog"] as object[];
+            var stringCollection = document["catalog"] as JArray;
             Assert.NotNull(stringCollection);
-            Assert.Equal(2, stringCollection.Length);
+            Assert.Equal(2, stringCollection.Count);
         }
 
         [Fact]
@@ -219,7 +220,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
 
             var response = await provider.SearchAsync(DocumentType, request);
 
-            Assert.Equal(3, response.DocumentsCount);
+            Assert.Equal(5, response.DocumentsCount);
 
 
             request = new SearchRequest
@@ -412,7 +413,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
 
             response = await provider.SearchAsync(DocumentType, request);
 
-            Assert.Equal(4, response.DocumentsCount);
+            Assert.Equal(6, response.DocumentsCount);
         }
 
 
