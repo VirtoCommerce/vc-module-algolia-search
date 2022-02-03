@@ -159,17 +159,6 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
                 var providerQuery = new AlgoliaSearchRequestBuilder().BuildRequest(request, indexName);
                 var response = await indexClient.SearchAsync<SearchDocument>(providerQuery);
-                //var providerResponses = await Task.WhenAll(providerRequests.Select(r => indexClient.Documents.SearchAsync(r?.SearchText, r?.SearchParameters)));
-
-                /*
-                // Copy aggregation ID from request to response
-                var searchResults = providerResponses.Select((response, i) => new AzureSearchResult
-                {
-                    AggregationId = providerRequests[i].AggregationId,
-                    ProviderResponse = response,
-                })
-                .ToArray();
-                */
 
                 var result = response.ToSearchResponse(request);
                 return result;
