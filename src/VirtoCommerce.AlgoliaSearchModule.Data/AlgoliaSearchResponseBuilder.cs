@@ -15,7 +15,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             {
                 TotalCount = response.NbHits,
                 Documents = response.Hits.Select(ToSearchDocument).ToList()
-                //Aggregations = GetAggregations(response.Aggregations, request)
+                //Aggregations = GetAggregations(response.Facets, request)
             };
 
             return result;

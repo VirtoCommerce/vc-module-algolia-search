@@ -718,12 +718,12 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
                 {
                     new TermAggregationRequest { FieldName = "Color", Size = 1 },
                 },
-                Take = 0,
+                Take = 1, // algolia doesn't allow 0
             };
 
             var response = await provider.SearchAsync(DocumentType, request);
 
-            Assert.Equal(0, response.DocumentsCount);
+            Assert.Equal(1, response.DocumentsCount);
             Assert.Equal(1, response.Aggregations?.Count);
 
             Assert.Equal(1, GetAggregationValuesCount(response, "Color"));

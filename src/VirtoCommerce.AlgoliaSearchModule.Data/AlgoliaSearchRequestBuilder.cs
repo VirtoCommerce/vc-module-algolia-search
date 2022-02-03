@@ -20,7 +20,8 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                 Offset = request?.Skip,
                 Length = request?.Take,
                 RestrictSearchableAttributes = request?.SearchFields?.ToList().Select(x=>x.ToLowerInvariant()).ToList(),
-                Filters = GetFilters(request)
+                Filters = GetFilters(request),
+                Facets = GetAggregations(request),
                 //FacetFilters = GetFilters(request),
                 //NumericFilters = GetNumericFilters(request)
             };
@@ -336,122 +337,19 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             return $"{lowerFilter}{upperFilter}";
         }
 
-        //private string FormatRangeFilter(string fieldName, )
+        /// <summary>
+        /// Algolia doesn't support dynamically filtered facets, so return just a list of facet names
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        protected virtual List<string> GetAggregations(SearchRequest request)
+        {
+            if (request?.Aggregations != null)
+            {
+                return request.Aggregations.Select(x => AlgoliaSearchHelper.ToAlgoliaFieldName(x.FieldName)).ToList();
+            }
 
-        //protected virtual TermRangeQuery CreateTermRangeQuery(string fieldName, string lower, string upper, bool includeLower, bool includeUpper)
-        //{
-        //    var termRangeQuery = new TermRangeQuery { Field = fieldName };
-
-        //    if (includeLower)
-        //    {
-        //        termRangeQuery.GreaterThanOrEqualTo = lower;
-        //    }
-        //    else
-        //    {
-        //        termRangeQuery.GreaterThan = lower;
-        //    }
-
-        //    if (includeUpper)
-        //    {
-        //        termRangeQuery.LessThanOrEqualTo = upper;
-        //    }
-        //    else
-        //    {
-        //        termRangeQuery.LessThan = upper;
-        //    }
-
-        //    return termRangeQuery;
-        //}
-
-        //protected virtual AggregationDictionary GetAggregations(SearchRequest request, Properties<IProperties> availableFields)
-        //{
-        //    var result = new Dictionary<string, AggregationContainer>();
-
-        //    if (request?.Aggregations != null)
-        //    {
-        //        foreach (var aggregation in request.Aggregations)
-        //        {
-        //            var aggregationId = aggregation.Id ?? aggregation.FieldName;
-        //            var fieldName = AlgoliaSearchHelper.ToElasticFieldName(aggregation.FieldName);
-        //            var filter = GetFilterQueryRecursive(aggregation.Filter, availableFields);
-
-        //            var termAggregationRequest = aggregation as TermAggregationRequest;
-        //            var rangeAggregationRequest = aggregation as RangeAggregationRequest;
-
-        //            if (termAggregationRequest != null)
-        //            {
-        //                AddTermAggregationRequest(result, aggregationId, fieldName, filter, termAggregationRequest);
-        //            }
-        //            else if (rangeAggregationRequest != null)
-        //            {
-        //                AddRangeAggregationRequest(result, aggregationId, fieldName, rangeAggregationRequest.Values);
-        //            }
-        //        }
-        //    }
-
-        //    return result.Any() ? new AggregationDictionary(result) : null;
-        //}
-
-        //protected virtual void AddTermAggregationRequest(IDictionary<string, AggregationContainer> container, string aggregationId, string field, QueryContainer filter, TermAggregationRequest termAggregationRequest)
-        //{
-        //    var facetSize = termAggregationRequest.Size;
-
-        //    TermsAggregation termsAggregation = null;
-
-        //    if (!string.IsNullOrEmpty(field))
-        //    {
-        //        termsAggregation = new TermsAggregation(aggregationId)
-        //        {
-        //            Field = field,
-        //            Size = facetSize == null ? null : facetSize > 0 ? facetSize : int.MaxValue,
-        //        };
-
-        //        if (termAggregationRequest.Values?.Any() == true)
-        //        {
-        //            termsAggregation.Include = new TermsInclude(termAggregationRequest.Values);
-        //        }
-        //    }
-
-        //    if (filter == null)
-        //    {
-        //        if (termsAggregation != null)
-        //        {
-        //            container.Add(aggregationId, termsAggregation);
-        //        }
-        //    }
-        //    else
-        //    {
-        //        var filterAggregation = new FilterAggregation(aggregationId) { Filter = filter };
-
-        //        if (termsAggregation != null)
-        //        {
-        //            filterAggregation.Aggregations = termsAggregation;
-        //        }
-
-        //        container.Add(aggregationId, filterAggregation);
-        //    }
-        //}
-
-        //protected virtual void AddRangeAggregationRequest(Dictionary<string, AggregationContainer> container, string aggregationId, string fieldName, IEnumerable<RangeAggregationRequestValue> values)
-        //{
-        //    if (values == null)
-        //        return;
-
-        //    foreach (var value in values)
-        //    {
-        //        var aggregationValueId = $"{aggregationId}-{value.Id}";
-        //        var query = CreateTermRangeQuery(fieldName, value.Lower, value.Upper, value.IncludeLower, value.IncludeUpper);
-
-        //        var filterAggregation = new FilterAggregation(aggregationValueId)
-        //        {
-        //            Filter = new BoolQuery
-        //            {
-        //                Must = new List<QueryContainer> { query }
-        //            }
-        //        };
-
-        //        container.Add(aggregationValueId, filterAggregation);
-        //    }
-        //}
+            return null;
+        }
     }
 }
