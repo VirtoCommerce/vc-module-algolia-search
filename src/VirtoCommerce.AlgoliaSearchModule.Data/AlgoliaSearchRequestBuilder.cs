@@ -19,8 +19,10 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             {
                 Offset = request?.Skip,
                 Length = request?.Take,
-                RestrictSearchableAttributes = request?.SearchFields?.ToList(),
-                FacetFilters = GetFilters(request)
+                RestrictSearchableAttributes = request?.SearchFields?.ToList().Select(x=>x.ToLowerInvariant()).ToList(),
+                Filters = GetFilters(request)
+                //FacetFilters = GetFilters(request),
+                //NumericFilters = GetNumericFilters(request)
             };
 
             /*
@@ -50,9 +52,14 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             return query;
         }
 
-        private IEnumerable<IEnumerable<string>> GetFilters(SearchRequest request)
+        private string GetFilters(SearchRequest request)
         {
-            var filter = GetFilterQueryRecursive(request.Filter);
+            return GetFilterQueryRecursive(request.Filter);
+        }
+
+        private IEnumerable<IEnumerable<string>> GetFilters2(SearchRequest request)
+        {
+            var filter = GetFilterQueryRecursive2(request.Filter);
             var filters = new List<List<string>> { filter };
             return filters;
         }
@@ -137,9 +144,9 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
         //    return GetFilterQueryRecursive(request?.Filter, availableFields);
         //}
 
-        protected virtual List<string> GetFilterQueryRecursive(IFilter filter)
+        protected virtual string GetFilterQueryRecursive(IFilter filter)
         {
-            List<string> result = null;
+            var result = string.Empty;
 
             switch (filter)
             {
@@ -151,29 +158,71 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                     result = CreateTermFilter(termFilter);
                     break;
 
+                case RangeFilter rangeFilter:
+                    result = CreateRangeFilter(rangeFilter);
+                    break;
+
+                    //case GeoDistanceFilter geoDistanceFilter:
+                    //    result = CreateGeoDistanceFilter(geoDistanceFilter);
+                    //    break;
+
+                    //case NotFilter notFilter:
+                    //    result = CreateNotFilter(notFilter, availableFields);
+                    //    break;
+
+                    //case AndFilter andFilter:
+                    //    result = CreateAndFilter(andFilter, availableFields);
+                    //    break;
+
+                    //case OrFilter orFilter:
+                    //    result = CreateOrFilter(orFilter, availableFields);
+                    //    break;
+
+                    //case WildCardTermFilter wildcardTermFilter:
+                    //    result = CreateWildcardTermFilter(wildcardTermFilter);
+                    //    break;
+            }
+
+            return result;
+        }
+
+        protected virtual List<string> GetFilterQueryRecursive2(IFilter filter)
+        {
+            List<string> result = null;
+
+            switch (filter)
+            {
+                //case IdsFilter idsFilter:
+                //    result = CreateIdsFilter(idsFilter);
+                //    break;
+
+                case TermFilter termFilter:
+                    result = CreateTermFilter2(termFilter);
+                    break;
+
                 //case RangeFilter rangeFilter:
                 //    result = CreateRangeFilter(rangeFilter);
                 //    break;
 
-                //case GeoDistanceFilter geoDistanceFilter:
-                //    result = CreateGeoDistanceFilter(geoDistanceFilter);
-                //    break;
+                    //case GeoDistanceFilter geoDistanceFilter:
+                    //    result = CreateGeoDistanceFilter(geoDistanceFilter);
+                    //    break;
 
-                //case NotFilter notFilter:
-                //    result = CreateNotFilter(notFilter, availableFields);
-                //    break;
+                    //case NotFilter notFilter:
+                    //    result = CreateNotFilter(notFilter, availableFields);
+                    //    break;
 
-                //case AndFilter andFilter:
-                //    result = CreateAndFilter(andFilter, availableFields);
-                //    break;
+                    //case AndFilter andFilter:
+                    //    result = CreateAndFilter(andFilter, availableFields);
+                    //    break;
 
-                //case OrFilter orFilter:
-                //    result = CreateOrFilter(orFilter, availableFields);
-                //    break;
+                    //case OrFilter orFilter:
+                    //    result = CreateOrFilter(orFilter, availableFields);
+                    //    break;
 
-                //case WildCardTermFilter wildcardTermFilter:
-                //    result = CreateWildcardTermFilter(wildcardTermFilter);
-                //    break;
+                    //case WildCardTermFilter wildcardTermFilter:
+                    //    result = CreateWildcardTermFilter(wildcardTermFilter);
+                    //    break;
             }
 
             return result;
@@ -200,7 +249,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
         //    };
         //}
 
-        protected virtual List<string> CreateTermFilter(TermFilter termFilter)
+        protected virtual List<string> CreateTermFilter2(TermFilter termFilter)
         {
             var result = new List<string>();
 
@@ -212,18 +261,34 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             return result;
         }
 
-        //protected virtual QueryContainer CreateRangeFilter(RangeFilter rangeFilter)
-        //{
-        //    QueryContainer result = null;
+        protected virtual string CreateTermFilter(TermFilter termFilter)
+        {
+            var result = string.Empty;
 
-        //    var fieldName = AlgoliaSearchHelper.ToElasticFieldName(rangeFilter.FieldName);
-        //    foreach (var value in rangeFilter.Values)
-        //    {
-        //        result |= CreateTermRangeQuery(fieldName, value);
-        //    }
+            foreach (var val in termFilter.Values)
+            {
+                if(!result.IsNullOrEmpty())
+                {
+                    result = $"{result} OR ";
+                }
+                result = $"{result}{AlgoliaSearchHelper.ToAlgoliaFieldName(termFilter.FieldName)}:\"{val.ToLowerInvariant()}\"";
+            }
 
-        //    return result;
-        //}
+            return result;
+        }
+
+        protected virtual string CreateRangeFilter(RangeFilter rangeFilter)
+        {
+            var result = string.Empty;
+
+            var fieldName = AlgoliaSearchHelper.ToAlgoliaFieldName(rangeFilter.FieldName);
+            foreach (var value in rangeFilter.Values)
+            {
+                result += CreateTermRangeQuery(fieldName, value);
+            }
+
+            return result;
+        }
 
         //protected virtual QueryContainer CreateGeoDistanceFilter(GeoDistanceFilter geoDistanceFilter)
         //{
@@ -277,12 +342,14 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
         //    return result;
         //}
 
-        //protected virtual TermRangeQuery CreateTermRangeQuery(string fieldName, RangeFilterValue value)
-        //{
-        //    var lower = string.IsNullOrEmpty(value.Lower) ? null : value.Lower;
-        //    var upper = string.IsNullOrEmpty(value.Upper) ? null : value.Upper;
-        //    return CreateTermRangeQuery(fieldName, lower, upper, value.IncludeLower, value.IncludeUpper);
-        //}
+        protected virtual string CreateTermRangeQuery(string fieldName, RangeFilterValue value)
+        {
+            var lower = string.IsNullOrEmpty(value.Lower) ? null : value.Lower;
+            var upper = string.IsNullOrEmpty(value.Upper) ? null : value.Upper;
+
+            return string.Empty;
+            //return CreateTermRangeQuery(fieldName, lower, upper, value.IncludeLower, value.IncludeUpper);
+        }
 
         //protected virtual TermRangeQuery CreateTermRangeQuery(string fieldName, string lower, string upper, bool includeLower, bool includeUpper)
         //{

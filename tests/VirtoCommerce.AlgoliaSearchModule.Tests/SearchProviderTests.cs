@@ -222,7 +222,6 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
 
             Assert.Equal(5, response.DocumentsCount);
 
-
             request = new SearchRequest
             {
                 SearchKeywords = "red shirt",
