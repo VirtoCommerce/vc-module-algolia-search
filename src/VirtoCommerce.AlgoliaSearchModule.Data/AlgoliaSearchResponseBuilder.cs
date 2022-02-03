@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Algolia.Search.Models.Search;
@@ -14,8 +15,8 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             var result = new SearchResponse
             {
                 TotalCount = response.NbHits,
-                Documents = response.Hits.Select(ToSearchDocument).ToList()
-                //Aggregations = GetAggregations(response.Facets, request)
+                Documents = response.Hits.Select(ToSearchDocument).ToList(),
+                Aggregations = GetAggregations(response.Facets, request)
             };
 
             return result;
@@ -47,90 +48,38 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             return result;
         }
 
-        //private static IList<AggregationResponse> GetAggregations(IReadOnlyDictionary<string, IAggregate> searchResponseAggregations, SearchRequest request)
-        //{
-        //    var result = new List<AggregationResponse>();
+        private static IList<AggregationResponse> GetAggregations(Dictionary<string, Dictionary<string, long>> searchResponseAggregations, SearchRequest request)
+        {
+            var result = new List<AggregationResponse>();
 
-        //    if (request?.Aggregations != null && searchResponseAggregations != null)
-        //    {
-        //        foreach (var aggregationRequest in request.Aggregations)
-        //        {
-        //            var aggregation = new AggregationResponse
-        //            {
-        //                Id = aggregationRequest.Id ?? aggregationRequest.FieldName,
-        //                Values = new List<AggregationResponseValue>()
-        //            };
+            if (request?.Aggregations != null && searchResponseAggregations != null)
+            {
+                foreach (var field in searchResponseAggregations.Keys)
+                {
+                    if (searchResponseAggregations.Values.Any())
+                    {
+                        IList<string> requestValues = null;
+                        var requestAggregation = request.Aggregations.Where(x => x.FieldName.Equals(field, StringComparison.OrdinalIgnoreCase)).SingleOrDefault();
+                        if(requestAggregation is TermAggregationRequest)
+                        {
+                            requestValues = ((TermAggregationRequest)requestAggregation).Values;
+                        }
 
-        //            var termAggregationRequest = aggregationRequest as TermAggregationRequest;
-        //            var rangeAggregationRequest = aggregationRequest as RangeAggregationRequest;
+                        var aggregation = new AggregationResponse
+                        {
+                            Id = field,
+                            Values = searchResponseAggregations[field].
+                            Where(
+                                x=>requestValues == null || requestValues.Contains(x.Key))
+                            .Select(x => new AggregationResponseValue() { Id = x.Key, Count = x.Value }).ToList()
+                        };
 
-        //            if (termAggregationRequest != null)
-        //            {
-        //                AddAggregationValues(aggregation, aggregation.Id, aggregation.Id, searchResponseAggregations);
-        //            }
-        //            else if (rangeAggregationRequest?.Values != null)
-        //            {
-        //                foreach (var value in rangeAggregationRequest.Values)
-        //                {
-        //                    var queryValueId = value.Id;
-        //                    var responseValueId = $"{aggregation.Id}-{queryValueId}";
-        //                    AddAggregationValues(aggregation, responseValueId, queryValueId, searchResponseAggregations);
-        //                }
-        //            }
+                        result.Add(aggregation);
+                    }
+                }
+            }
 
-        //            if (aggregation.Values.Any())
-        //            {
-        //                result.Add(aggregation);
-        //            }
-        //        }
-        //    }
-
-        //    return result;
-        //}
-
-        //private static void AddAggregationValues(AggregationResponse aggregation, string responseKey, string valueId, IReadOnlyDictionary<string, IAggregate> searchResponseAggregations)
-        //{
-        //    if (searchResponseAggregations.ContainsKey(responseKey))
-        //    {
-        //        var aggregate = searchResponseAggregations[responseKey];
-        //        var bucketAggregate = aggregate as BucketAggregate;
-        //        var singleBucketAggregate = aggregate as SingleBucketAggregate;
-
-        //        if (singleBucketAggregate != null)
-        //        {
-        //            if (singleBucketAggregate.ContainsKey(responseKey))
-        //            {
-        //                bucketAggregate = singleBucketAggregate[responseKey] as BucketAggregate;
-        //            }
-        //            else if (singleBucketAggregate.DocCount > 0)
-        //            {
-        //                var aggregationValue = new AggregationResponseValue
-        //                {
-        //                    Id = valueId,
-        //                    Count = singleBucketAggregate.DocCount
-        //                };
-
-        //                aggregation.Values.Add(aggregationValue);
-        //            }
-        //        }
-
-        //        if (bucketAggregate != null)
-        //        {
-        //            foreach (var term in bucketAggregate.Items.OfType<KeyedBucket<object>>())
-        //            {
-        //                if (term.DocCount > 0)
-        //                {
-        //                    var aggregationValue = new AggregationResponseValue
-        //                    {
-        //                        Id = term.Key.ToStringInvariant(),
-        //                        Count = term.DocCount ?? 0
-        //                    };
-
-        //                    aggregation.Values.Add(aggregationValue);
-        //                }
-        //            }
-        //        }
-        //    }
-        //}
+            return result;
+        }
     }
 }
