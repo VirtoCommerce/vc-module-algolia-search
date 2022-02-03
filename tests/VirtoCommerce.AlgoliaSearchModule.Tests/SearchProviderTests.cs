@@ -520,55 +520,55 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
         //    Assert.Equal(2, response.DocumentsCount);
         //}
 
-        [Fact]
-        public virtual async Task CanInvertFilterWithNot()
-        {
-            var provider = GetSearchProvider();
+        //[Fact]
+        //public virtual async Task CanInvertFilterWithNot()
+        //{
+        //    var provider = GetSearchProvider();
 
-            var request = new SearchRequest
-            {
-                Filter = new NotFilter
-                {
-                    ChildFilter = new TermFilter
-                    {
-                        FieldName = "Size",
-                        Values = new[]
-                        {
-                            "1",
-                            "2",
-                            "3",
-                        }
-                    },
-                },
-                Take = 10,
-            };
+        //    var request = new SearchRequest
+        //    {
+        //        Filter = new NotFilter
+        //        {
+        //            ChildFilter = new TermFilter
+        //            {
+        //                FieldName = "Size",
+        //                Values = new[]
+        //                {
+        //                    "1",
+        //                    "2",
+        //                    "3",
+        //                }
+        //            },
+        //        },
+        //        Take = 10,
+        //    };
 
-            var response = await provider.SearchAsync(DocumentType, request);
+        //    var response = await provider.SearchAsync(DocumentType, request);
 
-            Assert.Equal(4, response.DocumentsCount);
+        //    Assert.Equal(4, response.DocumentsCount);
 
 
-            request = new SearchRequest
-            {
-                Filter = new NotFilter
-                {
-                    ChildFilter = new RangeFilter
-                    {
-                        FieldName = "Size",
-                        Values = new[]
-                        {
-                            new RangeFilterValue { Lower = "0", Upper = "4" },
-                            new RangeFilterValue { Lower = "4", Upper = "20" },
-                        }
-                    },
-                },
-                Take = 10,
-            };
+        //    request = new SearchRequest
+        //    {
+        //        Filter = new NotFilter
+        //        {
+        //            ChildFilter = new RangeFilter
+        //            {
+        //                FieldName = "Size",
+        //                Values = new[]
+        //                {
+        //                    new RangeFilterValue { Lower = "0", Upper = "4" },
+        //                    new RangeFilterValue { Lower = "4", Upper = "20" },
+        //                }
+        //            },
+        //        },
+        //        Take = 10,
+        //    };
 
-            response = await provider.SearchAsync(DocumentType, request);
+        //    response = await provider.SearchAsync(DocumentType, request);
 
-            Assert.Equal(2, response.DocumentsCount);
-        }
+        //    Assert.Equal(2, response.DocumentsCount);
+        //}
 
         [Fact]
         public virtual async Task CanJoinFiltersWithAnd()
@@ -596,8 +596,8 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
                             FieldName = "Size",
                             Values = new[]
                             {
-                                new RangeFilterValue { Lower = "0", Upper = "4" },
-                                new RangeFilterValue { Lower = "4", Upper = "20", IncludeUpper = true },
+                                //new RangeFilterValue { Lower = "0", Upper = "4" }, // algolia only supports one range filter value per request
+                                new RangeFilterValue { Lower = "4", Upper = "20", IncludeUpper = true }
                             }
                         },
                     }
@@ -617,7 +617,10 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
 
             var request = new SearchRequest
             {
-                // (Color = Red) OR (Size > 10)
+                // (Color = Red) OR (Size > 10) // this type of query is not supported by algolia
+                // "Different types are not allowed in the same OR."
+                // Check using validator: https://www.algolia.com/doc/api-reference/api-parameters/filters/
+                // (Color = Red) OR (Color = Blue) // OR can only be within the same type
                 Filter = new OrFilter
                 {
                     ChildFilters = new IFilter[]
@@ -630,14 +633,14 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
                                 "Red",
                             }
                         },
-                        new RangeFilter
+                        new TermFilter
                         {
-                            FieldName = "Size",
+                            FieldName = "Color",
                             Values = new[]
                             {
-                                new RangeFilterValue { Lower = "10" },
+                                "Blue",
                             }
-                        },
+                        }
                     }
                 },
                 Take = 10,
@@ -645,7 +648,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
 
             var response = await provider.SearchAsync(DocumentType, request);
 
-            Assert.Equal(4, response.DocumentsCount);
+            Assert.Equal(6, response.DocumentsCount);
         }
 
         [Fact]
@@ -655,8 +658,9 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
 
             var request = new SearchRequest
             {
-                // (Color = Red) OR (NOT(Color = Blue) AND (Size < 20))
-                Filter = new OrFilter
+                // (Color = Red) OR (NOT(Color = Blue) AND (Size < 20)) // not supported by algolia
+                // (Color = Red) AND (NOT(size < 5) AND (Size < 20))
+                Filter = new AndFilter
                 {
                     ChildFilters = new IFilter[]
                     {
@@ -674,14 +678,14 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
                             {
                                 new NotFilter
                                 {
-                                    ChildFilter = new TermFilter
+                                    ChildFilter = new RangeFilter
                                     {
-                                        FieldName = "Color",
+                                        FieldName = "Size",
                                         Values = new[]
                                         {
-                                            "Blue",
+                                            new RangeFilterValue { Upper = "3" },
                                         }
-                                    },
+                                    }
                                 },
                                 new RangeFilter
                                 {
@@ -700,7 +704,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
 
             var response = await provider.SearchAsync(DocumentType, request);
 
-            Assert.Equal(4, response.DocumentsCount);
+            Assert.Equal(2, response.DocumentsCount);
         }
 
         [Fact]
