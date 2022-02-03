@@ -150,9 +150,9 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
             switch (filter)
             {
-                //case IdsFilter idsFilter:
-                //    result = CreateIdsFilter(idsFilter);
-                //    break;
+                case IdsFilter idsFilter:
+                    result = CreateIdsFilter(idsFilter);
+                    break;
 
                 case TermFilter termFilter:
                     result = CreateTermFilter(termFilter);
@@ -228,17 +228,24 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             return result;
         }
 
-        //protected virtual QueryContainer CreateIdsFilter(IdsFilter idsFilter)
-        //{
-        //    QueryContainer result = null;
+        protected virtual string CreateIdsFilter(IdsFilter idsFilter)
+        {
+            string result = string.Empty;
 
-        //    if (idsFilter?.Values != null)
-        //    {
-        //        result = new IdsQuery { Values = idsFilter.Values.Select(id => new Id(id)) };
-        //    }
+            if (idsFilter?.Values != null)
+            {
+                foreach (var val in idsFilter.Values)
+                {
+                    if (!result.IsNullOrEmpty())
+                    {
+                        result = $"{result} OR ";
+                    }
+                    result = $"{result}{AlgoliaSearchHelper.RawKeyFieldName}:\"{val}\"";
+                }
+            }
 
-        //    return result;
-        //}
+            return result;
+        }
 
         //protected virtual QueryContainer CreateWildcardTermFilter(WildCardTermFilter wildcardTermFilter)
         //{

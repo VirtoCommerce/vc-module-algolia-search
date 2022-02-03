@@ -14,38 +14,38 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             var result = new SearchResponse
             {
                 TotalCount = response.NbHits,
-                Documents = response.Hits//,
+                Documents = response.Hits.Select(ToSearchDocument).ToList()
                 //Aggregations = GetAggregations(response.Aggregations, request)
             };
 
             return result;
         }
 
-        //public static SearchDocument ToSearchDocument(IHit<SearchDocument> hit)
-        //{
-        //    var result = new SearchDocument { Id = hit.Id };
+        public static SearchDocument ToSearchDocument(SearchDocument hit)
+        {
+            var result = new SearchDocument { Id = hit[AlgoliaSearchHelper.RawKeyFieldName].ToString() };
 
-        //    // Copy fields and convert JArray to object[]
-        //    var fields = (IDictionary<string, object>)hit.Source ?? (IDictionary<string, object>)hit.Fields;
+            // Copy fields and convert JArray to object[]
+            var fields = (IDictionary<string, object>)hit;
 
-        //    if (fields != null)
-        //    {
-        //        foreach (var kvp in fields)
-        //        {
-        //            var name = kvp.Key;
-        //            var value = kvp.Value;
+            if (fields != null)
+            {
+                foreach (var kvp in fields)
+                {
+                    var name = kvp.Key;
+                    var value = kvp.Value;
 
-        //            if (value is JArray jArray)
-        //            {
-        //                value = jArray.ToObject<object[]>();
-        //            }
+                    if (value is JArray jArray)
+                    {
+                        value = jArray.ToObject<object[]>();
+                    }
 
-        //            result.Add(name, value);
-        //        }
-        //    }
+                    result.Add(name, value);
+                }
+            }
 
-        //    return result;
-        //}
+            return result;
+        }
 
         //private static IList<AggregationResponse> GetAggregations(IReadOnlyDictionary<string, IAggregate> searchResponseAggregations, SearchRequest request)
         //{
