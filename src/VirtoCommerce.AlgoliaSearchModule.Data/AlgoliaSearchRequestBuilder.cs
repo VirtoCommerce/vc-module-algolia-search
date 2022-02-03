@@ -284,6 +284,10 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             var fieldName = AlgoliaSearchHelper.ToAlgoliaFieldName(rangeFilter.FieldName);
             foreach (var value in rangeFilter.Values)
             {
+                if (!result.IsNullOrEmpty())
+                {
+                    result = $"{result} OR ";
+                }
                 result += CreateTermRangeQuery(fieldName, value);
             }
 
@@ -344,12 +348,41 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
         protected virtual string CreateTermRangeQuery(string fieldName, RangeFilterValue value)
         {
-            var lower = string.IsNullOrEmpty(value.Lower) ? null : value.Lower;
-            var upper = string.IsNullOrEmpty(value.Upper) ? null : value.Upper;
+            var lowerFilter = string.Empty;
+            if (!string.IsNullOrEmpty(value.Lower))
+            {
+                if(value.IncludeLower)
+                {
+                    lowerFilter = $"{fieldName}>={value.Lower}";
+                }
+                else
+                {
+                    lowerFilter = $"{fieldName}>{value.Lower}";
+                }
+            }
 
-            return string.Empty;
-            //return CreateTermRangeQuery(fieldName, lower, upper, value.IncludeLower, value.IncludeUpper);
+            var upperFilter = string.Empty;
+            if (!string.IsNullOrEmpty(value.Upper))
+            {
+                if (value.IncludeUpper)
+                {
+                    upperFilter = $"{fieldName}<={value.Upper}";
+                }
+                else
+                {
+                    upperFilter = $"{fieldName}<{value.Upper}";
+                }
+            }
+
+            if(!string.IsNullOrEmpty(lowerFilter) && !string.IsNullOrEmpty(upperFilter))
+            {
+                return $"{lowerFilter} AND {upperFilter}";
+            }
+
+            return $"{lowerFilter}{upperFilter}";
         }
+
+        //private string FormatRangeFilter(string fieldName, )
 
         //protected virtual TermRangeQuery CreateTermRangeQuery(string fieldName, string lower, string upper, bool includeLower, bool includeUpper)
         //{
