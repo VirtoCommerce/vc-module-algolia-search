@@ -3,7 +3,7 @@
   <id>VirtoCommerce.AlgoliaSearch</id>
   <version>1.0.0</version>
   <version-tag />
-  <platformVersion>3.68.0</platformVersion>
+  <platformVersion>3.200.0</platformVersion>
   <title>Algolia Search module</title>
   <description>Indexed search functionality with Algolia Search Engine</description>
   <authors>
@@ -21,7 +21,7 @@
   <assemblyFile>VirtoCommerce.AlgoliaSearchModule.Web.dll</assemblyFile>
   <moduleType>VirtoCommerce.AlgoliaSearchModule.Web.Module, VirtoCommerce.AlgoliaSearchModule.Web</moduleType>
   <dependencies>
-    <dependency id="VirtoCommerce.Search" version="3.15.0" />
+    <dependency id="VirtoCommerce.Search" version="3.200.0" />
   </dependencies>
   <groups>
     <group>commerce</group>
