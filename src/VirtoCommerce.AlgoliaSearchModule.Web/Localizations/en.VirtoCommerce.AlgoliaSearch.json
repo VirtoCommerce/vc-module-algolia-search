@@ -1,24 +1,14 @@
 {
     "settings": {
-        "VirtoCommerce.Search.AlgoliaSearch": {
-            "IndexTotalFieldsLimit": {
-                "title": "Maximum number of fields in an index",
-                "description": "index.mapping.total_fields.limit https://www.elastic.co/guide/en/AlgoliaSearch/reference/current/mapping.html#mapping-limit-settings"
-            },
-            "TokenFilter": {
-                "title": "Token filter",
-                "description": "Select which token filter should be used when indexing searchable fields (requires rebuilding an index)"
-            },
-            "NGramTokenFilter": {
-                "MinGram": {
-                    "title": "Min Gram",
-                    "description": "Minimum number of characters in a gram (requires rebuilding an index)"
-                },
-                "MaxGram": {
-                    "title": "Max Gram",
-                    "description": "Maximum number of characters in a gram (requires rebuilding an index)"
-                }
-            }
+      "VirtoCommerce.Search.AlgoliaSearch": {
+        "SortReplicas": {
+          "title": "Sorting",
+          "description": "Specify sorting for each document type indexed. Example: product:name-asc, will allow sorting by name in ascending order. More info here: https://www.algolia.com/doc/guides/managing-results/refine-results/sorting/how-to/sort-by-attribute"
+        },
+        "Version": {
+          "title": "Algolia Search Edition",
+          "description": "Version will determine features that are available to the provider. For example virtual replicas for sorting only available in Premium edition."
         }
+      }
     }
 }

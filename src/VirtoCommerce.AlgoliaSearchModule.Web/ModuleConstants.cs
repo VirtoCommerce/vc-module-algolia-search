@@ -22,18 +22,19 @@ namespace VirtoCommerce.AlgoliaSearchModule.Web
 
                 private static readonly SettingDescriptor VirtualSortReplicas = new SettingDescriptor
                 {
-                    Name = "VirtoCommerce.Search.AlgoliaSearch.VirtualSortReplicas",
+                    Name = "VirtoCommerce.Search.AlgoliaSearch.Version",
                     GroupName = "Search|AlgoliaSearch",
-                    ValueType = SettingValueType.Boolean,
-                    DefaultValue = false
+                    ValueType = SettingValueType.ShortText,
+                    AllowedValues = new[] { "Standard", "Premium" },
+                    DefaultValue = "Standard"
                 };
 
                 public static IEnumerable<SettingDescriptor> AllSettings
                 {
                     get
                     {
-                        yield return VirtualSortReplicas;
-                        yield return SortReplicas;                        
+                        yield return SortReplicas;
+                        yield return VirtualSortReplicas;               
                     }
                 }
             }
