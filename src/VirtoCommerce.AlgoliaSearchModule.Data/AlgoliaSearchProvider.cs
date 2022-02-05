@@ -132,9 +132,10 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             if (existingReplicas == null)
                 existingReplicas = new List<string>();
 
-            if (_algoliaSearchOptions.Replicas != null && _algoliaSearchOptions.Replicas.Length > 0)
+            var replicaSettings = GetSortReplicas(documentType);
+            if (replicaSettings != null && replicaSettings.Length > 0)
             {
-                var replicaNames = _algoliaSearchOptions.Replicas.Select(x => AlgoliaSearchHelper.ToAlgoliaReplicaName(indexName, x)).ToList();
+                var replicaNames = replicaSettings.Select(x => AlgoliaSearchHelper.ToAlgoliaReplicaName(indexName, x)).ToList();
 
                 if (!Enumerable.SequenceEqual(existingReplicas, replicaNames))
                 {
@@ -143,7 +144,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                     settings.Replicas = existingReplicas.Union(replicaNames).ToList();
 
                     // set sorting field for each replica
-                    foreach (var replica in _algoliaSearchOptions.Replicas)
+                    foreach (var replica in replicaSettings)
                     {
                         var replicaName = AlgoliaSearchHelper.ToAlgoliaReplicaName(indexName, replica);
                         var replicaIndex = Client.InitIndex(replicaName);
@@ -286,11 +287,55 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             throw new SearchException($"{message}. Search service name: {_algoliaSearchOptions.AppId}, Scope: {_searchOptions.Scope}", innerException);
         }
 
-
         protected virtual SearchClient CreateSearchServiceClient()
         {
             var result = new SearchClient(_algoliaSearchOptions.AppId, _algoliaSearchOptions.ApiKey);
             return result;
+        }
+
+        protected virtual AlgoliaIndexSortReplica[] GetSortReplicas(string documentType)
+        {
+            var replicas = _settingsManager.GetValue<string[]>("VirtoCommerce.Search.AlgoliaSearch.SortReplicas", null);
+
+            if (replicas == null)
+                return null;
+
+            var sortReplicas = new List<AlgoliaIndexSortReplica>();
+            foreach (var replica in replicas)
+            {
+                var sortReplica = new AlgoliaIndexSortReplica();
+                var replicaArray = replica.Split(':');
+                var replicaDocumentType = string.Empty;
+                var fieldNameWithSort = string.Empty;
+
+                if (replicaArray.Length > 1)
+                {
+                    replicaDocumentType = replicaArray[0];
+                    if (!replicaDocumentType.Equals(documentType, StringComparison.OrdinalIgnoreCase))
+                        continue; // skip if type doesn't match
+
+                    fieldNameWithSort = replicaArray[1];
+                }
+                else
+                {
+                    fieldNameWithSort = replicaArray[0];
+                }
+
+                if (fieldNameWithSort.EndsWith("asc"))
+                {
+                    sortReplica.IsDescending = false;
+                    sortReplica.FieldName = AlgoliaSearchHelper.ToAlgoliaFieldName(fieldNameWithSort.Substring(0, fieldNameWithSort.LastIndexOf("-asc")));
+                }
+                else
+                {
+                    sortReplica.IsDescending = true;
+                    sortReplica.FieldName = AlgoliaSearchHelper.ToAlgoliaFieldName(fieldNameWithSort.Substring(0, fieldNameWithSort.LastIndexOf("-desc")));
+                }
+
+                sortReplicas.Add(sortReplica);
+            }
+
+            return sortReplicas.ToArray();
         }
     }
 }

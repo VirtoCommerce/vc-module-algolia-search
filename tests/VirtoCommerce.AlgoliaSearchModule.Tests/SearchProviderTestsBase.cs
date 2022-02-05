@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Moq;
+using VirtoCommerce.AlgoliaSearchModule.Web;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Settings;
 using VirtoCommerce.SearchModule.Core.Model;
@@ -94,11 +95,12 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
         {
             var mock = new Mock<ITestSettingsManager>();
 
-            mock.Setup(s => s.GetValue(It.IsAny<string>(), It.IsAny<string>())).Returns((string name, string defaultValue) => defaultValue);
-            mock.Setup(s => s.GetValue(It.IsAny<string>(), It.IsAny<bool>())).Returns((string name, bool defaultValue) => defaultValue);
-            mock.Setup(s => s.GetValue(It.IsAny<string>(), It.IsAny<int>())).Returns((string name, int defaultValue) => defaultValue);
-            mock.Setup(s => s.GetObjectSettingAsync(It.IsAny<string>(), null, null))
-                .Returns(Task.FromResult(new ObjectSettingEntry()));
+            mock.Setup(s => s.GetObjectSettingAsync(ModuleConstants.Settings.Indexing.SortReplicas.Name, null, null)).ReturnsAsync(new ObjectSettingEntry() { Value = new[] { "item:name-asc", "item:name-desc" } });
+            //mock.Setup(s => s.GetValue(It.IsAny<string>(), It.IsAny<string>())).Returns((string name, string defaultValue) => defaultValue);
+            //mock.Setup(s => s.GetValue(It.IsAny<string>(), It.IsAny<bool>())).Returns((string name, bool defaultValue) => defaultValue);
+            //mock.Setup(s => s.GetValue(It.IsAny<string>(), It.IsAny<int>())).Returns((string name, int defaultValue) => defaultValue);
+            //mock.Setup(s => s.GetObjectSettingAsync(It.IsAny<string>(), null, null))
+            //    .Returns(Task.FromResult(new ObjectSettingEntry()));
 
             return mock.Object;
         }

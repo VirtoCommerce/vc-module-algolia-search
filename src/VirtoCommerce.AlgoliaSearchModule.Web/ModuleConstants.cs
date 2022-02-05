@@ -11,46 +11,29 @@ namespace VirtoCommerce.AlgoliaSearchModule.Web
         {
             public static class Indexing
             {
-                private static readonly SettingDescriptor IndexTotalFieldsLimit = new SettingDescriptor
+                public static readonly SettingDescriptor SortReplicas = new SettingDescriptor
                 {
-                    Name = "VirtoCommerce.Search.AlgoliaSearch.IndexTotalFieldsLimit",
+                    Name = "VirtoCommerce.Search.AlgoliaSearch.SortReplicas",
                     GroupName = "Search|AlgoliaSearch",
-                    ValueType = SettingValueType.Integer,
-                    DefaultValue = 1000
-                };
-
-                private static readonly SettingDescriptor TokenFilter = new SettingDescriptor
-                {
-                    Name = "VirtoCommerce.Search.AlgoliaSearch.TokenFilter",
-                    GroupName = "Search|AlgoliaSearch",
+                    IsDictionary = true,
                     ValueType = SettingValueType.ShortText,
-                    DefaultValue = "custom_edge_ngram"
+                    AllowedValues = new[] { "product:name-asc", "product:name-desc", "product:price-asc", "product:price-desc" }
                 };
 
-                private static readonly SettingDescriptor MinGram = new SettingDescriptor
+                private static readonly SettingDescriptor VirtualSortReplicas = new SettingDescriptor
                 {
-                    Name = "VirtoCommerce.Search.AlgoliaSearch.NGramTokenFilter.MinGram",
+                    Name = "VirtoCommerce.Search.AlgoliaSearch.VirtualSortReplicas",
                     GroupName = "Search|AlgoliaSearch",
-                    ValueType = SettingValueType.Integer,
-                    DefaultValue = 1
-                };
-
-                private static readonly SettingDescriptor MaxGram = new SettingDescriptor
-                {
-                    Name = "VirtoCommerce.Search.AlgoliaSearch.NGramTokenFilter.MaxGram",
-                    GroupName = "Search|AlgoliaSearch",
-                    ValueType = SettingValueType.Integer,
-                    DefaultValue = 20
+                    ValueType = SettingValueType.Boolean,
+                    DefaultValue = false
                 };
 
                 public static IEnumerable<SettingDescriptor> AllSettings
                 {
                     get
                     {
-                        yield return IndexTotalFieldsLimit;
-                        yield return TokenFilter;
-                        yield return MinGram;
-                        yield return MaxGram;
+                        yield return VirtualSortReplicas;
+                        yield return SortReplicas;                        
                     }
                 }
             }

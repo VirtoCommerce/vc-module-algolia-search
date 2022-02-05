@@ -17,20 +17,33 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             var name = string.Empty;
 
             // use master index if no sorting defined
-            if (sortings != null)
+            if (sortings != null && sortings.Count > 0)
             {
-                foreach (var sorting in sortings)
-                {
-                    if(!string.IsNullOrEmpty(name))
-                    {
-                        name = $"{name}_";
-                    }
+                var sorting = sortings[0];
 
-                    if (sorting.IsDescending)
-                        name = $"{name}{ToAlgoliaFieldName(sorting.FieldName)}_desc";
+                var fieldName = ToAlgoliaFieldName(sorting.FieldName);
+
+                // ignore special field called score (it is default elastic search field that we don't need to use, and use default index instead)
+                if (fieldName.Equals("score", System.StringComparison.OrdinalIgnoreCase))
+                    return masterIndexName;
+
+                // ignore priority sort, use default index for that instead
+                if (fieldName.Equals("priority", System.StringComparison.OrdinalIgnoreCase))
+                    return masterIndexName;
+
+                // we will support only one field for sorting
+                //foreach (var sorting in sortings)
+                //{
+                //if(!string.IsNullOrEmpty(name))
+                //{
+                //    name = $"{name}_";
+                //}
+
+                if (sorting.IsDescending)
+                        name = $"{name}{fieldName}_desc";
                     else
-                        name = $"{name}{ToAlgoliaFieldName(sorting.FieldName)}_asc";
-                }
+                        name = $"{name}{fieldName}_asc";
+                //}
             }
 
             return $"{masterIndexName}_{name}";

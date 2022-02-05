@@ -5,8 +5,6 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
         public string AppId { get; set; }
 
         public string ApiKey { get; set; }
-
-        public AlgoliaIndexSortReplica[] Replicas { get; set; }
     }
 
     public class AlgoliaIndexSortReplica

@@ -41,11 +41,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
                 new
                     AlgoliaSearchOptions {
                         AppId = appId,
-                        ApiKey = apiLKey,
-                        Replicas = new AlgoliaIndexSortReplica[] {
-                            new AlgoliaIndexSortReplica() { FieldName = "name", IsDescending = true, IsVirtual = false },
-                            new AlgoliaIndexSortReplica() { FieldName = "name", IsDescending = false, IsVirtual = false }
-                        }
+                        ApiKey = apiLKey
                     }
             );
             var searchOptions = Options.Create(new SearchOptions { Scope = "test-core", Provider = "AlgoliaSearch" });
