@@ -37,7 +37,17 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
             var appId = Environment.GetEnvironmentVariable("AlgoliaAppId");
             var apiLKey = Environment.GetEnvironmentVariable("AlgoliaApiKey");
 
-            var elasticOptions = Options.Create(new AlgoliaSearchOptions { AppId = appId,  ApiKey = apiLKey });
+            var elasticOptions = Options.Create(
+                new
+                    AlgoliaSearchOptions {
+                        AppId = appId,
+                        ApiKey = apiLKey,
+                        Replicas = new AlgoliaIndexSortReplica[] {
+                            new AlgoliaIndexSortReplica() { FieldName = "name", IsDescending = true, IsVirtual = false },
+                            new AlgoliaIndexSortReplica() { FieldName = "name", IsDescending = false, IsVirtual = false }
+                        }
+                    }
+            );
             var searchOptions = Options.Create(new SearchOptions { Scope = "test-core", Provider = "AlgoliaSearch" });
 
             var provider = new AlgoliaSearchProvider(elasticOptions, searchOptions, GetSettingsManager());

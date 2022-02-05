@@ -74,6 +74,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
             // get current setting, so we can update them with new fields if needed
             var settings = await index.ExistsAsync() ? await index.GetSettingsAsync() : new IndexSettings();
+            var settingHasChanges = false;
 
             // define searchable attributes
             foreach(var document in documents)
@@ -91,6 +92,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                         if (!settings.SearchableAttributes.Contains(fieldName))
                         {
                             settings.SearchableAttributes.Add(fieldName);
+                            settingHasChanges = true;
                         }
                     }
 
@@ -104,6 +106,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                         if (!settings.AttributesForFaceting.Contains(fieldName))
                         {
                             settings.AttributesForFaceting.Add(fieldName);
+                            settingHasChanges = true;
                         }
                     }
 
@@ -117,12 +120,46 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                         if (!settings.AttributesToRetrieve.Contains(fieldName))
                         {
                             settings.AttributesToRetrieve.Add(fieldName);
+                            settingHasChanges = true;
                         }
                     }
                 }
-
             }
-            await index.SetSettingsAsync(settings, forwardToReplicas: true);
+
+            // set replicas
+            var existingReplicas = settings.Replicas;
+
+            if (existingReplicas == null)
+                existingReplicas = new List<string>();
+
+            if (_algoliaSearchOptions.Replicas != null && _algoliaSearchOptions.Replicas.Length > 0)
+            {
+                var replicaNames = _algoliaSearchOptions.Replicas.Select(x => AlgoliaSearchHelper.ToAlgoliaReplicaName(indexName, x)).ToList();
+
+                if (!Enumerable.SequenceEqual(existingReplicas, replicaNames))
+                {
+                    settingHasChanges = true;
+
+                    settings.Replicas = existingReplicas.Union(replicaNames).ToList();
+
+                    // set sorting field for each replica
+                    foreach (var replica in _algoliaSearchOptions.Replicas)
+                    {
+                        var replicaName = AlgoliaSearchHelper.ToAlgoliaReplicaName(indexName, replica);
+                        var replicaIndex = Client.InitIndex(replicaName);
+                        var replicaSetting = new IndexSettings()
+                        {
+                            CustomRanking =
+                            new List<string> { replica.IsDescending ? $"desc({replica.FieldName})" : $"asc({replica.FieldName})" }
+                        };
+                        await replicaIndex.SetSettingsAsync(replicaSetting);
+                    }
+                }
+            }
+
+            // only update index if there are changes
+            if(settingHasChanges)
+                await index.SetSettingsAsync(settings, forwardToReplicas: true);
 
             var response = await index.SaveObjectsAsync(providerDocuments);
             return CreateIndexingResult(response);
@@ -151,7 +188,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
         public virtual async Task<SearchResponse> SearchAsync(string documentType, SearchRequest request)
         {
-            var indexName = GetIndexName(documentType);
+            var indexName = AlgoliaSearchHelper.ToAlgoliaIndexName(GetIndexName(documentType), request.Sorting);
 
             try
             {

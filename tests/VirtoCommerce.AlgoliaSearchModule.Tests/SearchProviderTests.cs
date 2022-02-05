@@ -88,43 +88,41 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
             Assert.Equal(2, stringCollection.Length);
         }
 
-        //[Fact]
-        //public virtual async Task CanSortByStringField()
-        //{
-        //    var provider = GetSearchProvider();
+        [Fact]
+        public virtual async Task CanSortByStringField()
+        {
+            var provider = GetSearchProvider();
 
-        //    var request = new SearchRequest
-        //    {
-        //        Sorting = new[]
-        //        {
-        //            // Sorting by non-existent field should be ignored
-        //            new SortingField { FieldName = "non-existent-field" },
-        //            new SortingField { FieldName = "Name" },
-        //        },
-        //        Take = 1,
-        //    };
+            var request = new SearchRequest
+            {
+                Sorting = new[]
+                {
+                    new SortingField { FieldName = "Name" },
+                },
+                Take = 1,
+            };
 
-        //    var response = await provider.SearchAsync(DocumentType, request);
+            var response = await provider.SearchAsync(DocumentType, request);
 
-        //    Assert.Equal(1, response.DocumentsCount);
+            Assert.Equal(1, response.DocumentsCount);
 
-        //    var productName = response.Documents.First()["name"] as string;
-        //    Assert.Equal("Black Sox", productName);
+            var productName = response.Documents.First()["name"] as string;
+            Assert.Equal("Black Sox", productName);
 
 
-        //    request = new SearchRequest
-        //    {
-        //        Sorting = new[] { new SortingField { FieldName = "Name", IsDescending = true } },
-        //        Take = 1,
-        //    };
+            request = new SearchRequest
+            {
+                Sorting = new[] { new SortingField { FieldName = "Name", IsDescending = true } },
+                Take = 1,
+            };
 
-        //    response = await provider.SearchAsync(DocumentType, request);
+            response = await provider.SearchAsync(DocumentType, request);
 
-        //    Assert.Equal(1, response.DocumentsCount);
+            Assert.Equal(1, response.DocumentsCount);
 
-        //    productName = response.Documents.First()["name"] as string;
-        //    Assert.Equal("Sample Product", productName);
-        //}
+            productName = response.Documents.First()["name"] as string;
+            Assert.Equal("Sample Product", productName);
+        }
 
         //[Fact]
         //public virtual async Task CanSortByNumericField()
