@@ -344,10 +344,14 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
         /// <returns></returns>
         protected virtual List<string> GetAggregations(SearchRequest request)
         {
+            List<string> facets = null;
             if (request?.Aggregations != null)
             {
-                return request.Aggregations.Select(x => AlgoliaSearchHelper.ToAlgoliaFieldName(x.FieldName)).ToList();
+                facets = request.Aggregations.Select(x => AlgoliaSearchHelper.ToAlgoliaFieldName(string.IsNullOrEmpty(x.FieldName) ? x.Id : x.FieldName)).ToList();
             }
+
+            if (facets != null && facets.Count > 0)
+                return facets; // otherwise we should return all facets
 
             return null;
         }

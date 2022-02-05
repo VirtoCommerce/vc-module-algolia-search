@@ -6,7 +6,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
         public static string ToAlgoliaFieldName(string originalName)
         {
-            return originalName?.ToLowerInvariant();
+            return originalName?.ToLowerInvariant().Trim().Replace(' ', '_');
         }
 
         /*

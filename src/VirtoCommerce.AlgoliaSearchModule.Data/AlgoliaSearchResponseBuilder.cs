@@ -59,7 +59,12 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                     if (searchResponseAggregations.Values.Any())
                     {
                         IList<string> requestValues = null;
-                        var requestAggregation = request.Aggregations.Where(x => x.FieldName.Equals(field, StringComparison.OrdinalIgnoreCase)).SingleOrDefault();
+                        var requestAggregation = request.Aggregations.Where(
+                                x =>
+                                    (!string.IsNullOrEmpty(x.FieldName) && AlgoliaSearchHelper.ToAlgoliaFieldName(x.FieldName).Equals(field, StringComparison.OrdinalIgnoreCase))
+                                    ||
+                                    (!string.IsNullOrEmpty(x.Id) && AlgoliaSearchHelper.ToAlgoliaFieldName(x.Id).Equals(field, StringComparison.OrdinalIgnoreCase))
+                            ).SingleOrDefault();
                         if(requestAggregation is TermAggregationRequest)
                         {
                             requestValues = ((TermAggregationRequest)requestAggregation).Values;
@@ -67,7 +72,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
                         var aggregation = new AggregationResponse
                         {
-                            Id = field,
+                            Id = string.IsNullOrEmpty(requestAggregation.FieldName) ? requestAggregation.Id : requestAggregation.FieldName,
                             Values = searchResponseAggregations[field].
                             Where(
                                 x=>requestValues == null || requestValues.Contains(x.Key))

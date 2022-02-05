@@ -17,7 +17,7 @@
   <requireLicenseAcceptance>false</requireLicenseAcceptance>
   <releaseNotes>Third version.</releaseNotes>
   <copyright>Copyright © 2020 - 2021 Virto Commerce. All rights reserved</copyright>
-  <tags>elastic search</tags>
+  <tags>algolia search</tags>
   <assemblyFile>VirtoCommerce.AlgoliaSearchModule.Web.dll</assemblyFile>
   <moduleType>VirtoCommerce.AlgoliaSearchModule.Web.Module, VirtoCommerce.AlgoliaSearchModule.Web</moduleType>
   <dependencies>

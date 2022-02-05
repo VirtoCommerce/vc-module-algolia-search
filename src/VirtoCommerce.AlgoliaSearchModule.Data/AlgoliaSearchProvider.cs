@@ -22,7 +22,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 {
     public class AlgoliaSearchProvider : ISearchProvider
     {
-        private readonly AlgoliaSearchOptions _azureSearchOptions;
+        private readonly AlgoliaSearchOptions _algoliaSearchOptions;
         private readonly SearchOptions _searchOptions;
         private readonly ISettingsManager _settingsManager;
 
@@ -34,7 +34,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             if (searchOptions == null)
                 throw new ArgumentNullException(nameof(searchOptions));
 
-            _azureSearchOptions = algoliaSearchOptions.Value;
+            _algoliaSearchOptions = algoliaSearchOptions.Value;
             _searchOptions = searchOptions.Value;
 
             _settingsManager = settingsManager ?? throw new ArgumentNullException(nameof(settingsManager));
@@ -246,13 +246,13 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
         protected virtual void ThrowException(string message, Exception innerException)
         {
-            //throw new SearchException($"{message}. Search service name: {_azureSearchOptions.SearchServiceName}, Scope: {_searchOptions.Scope}", innerException);
+            throw new SearchException($"{message}. Search service name: {_algoliaSearchOptions.AppId}, Scope: {_searchOptions.Scope}", innerException);
         }
 
 
         protected virtual SearchClient CreateSearchServiceClient()
         {
-            var result = new SearchClient(_azureSearchOptions.AppId, _azureSearchOptions.ApiKey);
+            var result = new SearchClient(_algoliaSearchOptions.AppId, _algoliaSearchOptions.ApiKey);
             return result;
         }
     }
