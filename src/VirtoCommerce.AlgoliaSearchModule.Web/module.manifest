@@ -4,7 +4,7 @@
   <version>1.0.0</version>
   <version-tag />
   <platformVersion>3.200.0</platformVersion>
-  <title>Algolia Search module</title>
+  <title>Algolia Search</title>
   <description>Indexed search functionality with Algolia Search Engine</description>
   <authors>
     <author>Alexander Siniouguine</author>
