@@ -31,6 +31,10 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                 if (fieldName.Equals("priority", System.StringComparison.OrdinalIgnoreCase))
                     return masterIndexName;
 
+                // we need to change to another name for indexation date
+                if (fieldName.Equals("indexationdate", System.StringComparison.OrdinalIgnoreCase))
+                    fieldName = "indexationdate_timestamp";
+
                 // we will support only one field for sorting
                 //foreach (var sorting in sortings)
                 //{

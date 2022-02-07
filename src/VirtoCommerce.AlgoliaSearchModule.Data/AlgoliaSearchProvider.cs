@@ -163,6 +163,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                 await index.SetSettingsAsync(settings, forwardToReplicas: true);
 
             var response = await index.SaveObjectsAsync(providerDocuments);
+
             return CreateIndexingResult(response);
         }
 
@@ -245,6 +246,14 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
                     result.Add(fieldName, value);
                 }
+
+                // handle special indexationdate field, need to convert it to sortable numeric value
+                // https://www.algolia.com/doc/guides/managing-results/refine-results/sorting/how-to/sort-an-index-by-date/
+                if(field.Name.Equals("indexationdate", StringComparison.OrdinalIgnoreCase))
+                {
+                    result.Add("indexationdate_timestamp", DateTimeToUnixTimestamp((DateTime)field.Value));
+                }
+                
             }
 
             return result;
@@ -295,7 +304,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
         protected virtual AlgoliaIndexSortReplica[] GetSortReplicas(string documentType)
         {
-            var replicas = _settingsManager.GetValue<string[]>("VirtoCommerce.Search.AlgoliaSearch.SortReplicas", null);
+            var replicas = _settingsManager.GetValue("VirtoCommerce.Search.AlgoliaSearch.SortReplicas", new[] { "product:name-asc", "product:name-desc", "product:price-asc", "product:price-desc", "indexationdate_timestamp-desc" });
 
             if (replicas == null)
                 return null;
@@ -336,6 +345,13 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             }
 
             return sortReplicas.ToArray();
+        }
+
+        public static double DateTimeToUnixTimestamp(DateTime dateTime)
+        {
+            DateTime unixStart = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc);
+            long unixTimeStampInTicks = (dateTime.ToUniversalTime() - unixStart).Ticks;
+            return (double)unixTimeStampInTicks / TimeSpan.TicksPerSecond;
         }
     }
 }

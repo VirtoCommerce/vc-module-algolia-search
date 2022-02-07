@@ -11,16 +11,17 @@ namespace VirtoCommerce.AlgoliaSearchModule.Web
         {
             public static class Indexing
             {
-                public static readonly SettingDescriptor SortReplicas = new SettingDescriptor
+                public static readonly SettingDescriptor SortReplicas = new()
                 {
                     Name = "VirtoCommerce.Search.AlgoliaSearch.SortReplicas",
                     GroupName = "Search|AlgoliaSearch",
                     IsDictionary = true,
                     ValueType = SettingValueType.ShortText,
-                    AllowedValues = new[] { "product:name-asc", "product:name-desc", "product:price-asc", "product:price-desc" }
+                    AllowedValues = new[] { "product:name-asc", "product:name-desc", "product:price-asc", "product:price-desc", "indexationdate_timestamp-desc" },
+                    DefaultValue = new[] { "product:name-asc", "product:name-desc", "product:price-asc", "product:price-desc", "indexationdate_timestamp-desc" }
                 };
 
-                private static readonly SettingDescriptor VirtualSortReplicas = new SettingDescriptor
+                private static readonly SettingDescriptor VirtualSortReplicas = new()
                 {
                     Name = "VirtoCommerce.Search.AlgoliaSearch.Version",
                     GroupName = "Search|AlgoliaSearch",
@@ -33,8 +34,8 @@ namespace VirtoCommerce.AlgoliaSearchModule.Web
                 {
                     get
                     {
-                        yield return SortReplicas;
-                        yield return VirtualSortReplicas;               
+                        yield return VirtualSortReplicas;
+                        yield return SortReplicas;              
                     }
                 }
             }
