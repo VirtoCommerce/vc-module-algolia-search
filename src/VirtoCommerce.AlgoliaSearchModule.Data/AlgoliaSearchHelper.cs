@@ -52,9 +52,11 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                     else
                         name = $"{name}{fieldName}_asc";
                 //}
+
+                return $"{masterIndexName}_{name}";
             }
 
-            return $"{masterIndexName}_{name}";
+            return masterIndexName;
         }
 
         public static string ToAlgoliaReplicaName(string masterIndexName, AlgoliaIndexSortReplica replica)
