@@ -22,6 +22,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                 RestrictSearchableAttributes = request?.SearchFields?.ToList().Select(x=>x.ToLowerInvariant()).ToList(),
                 Filters = GetFilters(request),
                 Facets = GetAggregations(request),
+                AroundLatLng = GetGeoFilter(request),
                 //FacetFilters = GetFilters(request),
                 //NumericFilters = GetNumericFilters(request)
             };
@@ -56,6 +57,17 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
         private string GetFilters(SearchRequest request)
         {
             return GetFilterQueryRecursive(request.Filter);
+        }
+
+        private string GetGeoFilter(SearchRequest request)
+        {
+            if (request.Sorting != null && request.Sorting.Count > 0 && request.Sorting[0] is GeoDistanceSortingField)
+            {
+                var sort = request.Sorting[0] as GeoDistanceSortingField;
+                return $"{sort.Location.Latitude}, {sort.Location.Longitude}";
+            }
+
+            return null;
         }
 
         //protected virtual SourceFilter GetSourceFilters(SearchRequest request)

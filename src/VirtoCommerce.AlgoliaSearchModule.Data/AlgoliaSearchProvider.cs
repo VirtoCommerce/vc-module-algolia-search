@@ -240,9 +240,17 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                 {
                     var isCollection = field.IsCollection || field.Values.Count > 1;
 
-                    // TODO: handle GEO POINT
+
                     var point = field.Value as GeoPoint;
                     var value = isCollection ? field.Values : field.Value;
+
+
+                    // Only support single field geo location
+                    if(field.Value is GeoPoint)
+                    {
+                        value = new { lat = point.Latitude, lng = point.Longitude };
+                        fieldName = "_geoloc";
+                    }
 
                     result.Add(fieldName, value);
                 }
