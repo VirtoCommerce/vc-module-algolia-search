@@ -16,13 +16,21 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             {
                 Offset = request?.Skip,
                 Length = request?.Take,
-                RestrictSearchableAttributes = request?.SearchFields?.ToList().Select(x=>x.ToLowerInvariant()).ToList(),
+                RestrictSearchableAttributes = GetSearchableAttributes(request),
                 Filters = GetFilters(request),
                 Facets = GetAggregations(request),
                 AroundLatLng = GetGeoFilter(request)
             };
 
             return query;
+        }
+
+        private List<string> GetSearchableAttributes(SearchRequest request)
+        {
+            // Ignore default _content field
+            return request?.SearchFields?.ToList()
+                .Where(x=>!x.ToLowerInvariant().Equals("_content"))
+                .Select(x => x.ToLowerInvariant()).ToList();
         }
 
         private string GetFilters(SearchRequest request)
