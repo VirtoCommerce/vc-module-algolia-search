@@ -10,9 +10,6 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 {
     public class AlgoliaSearchRequestBuilder
     {
-        // Used to map 'score' sort field to Elastic Search _score sorting field 
-        private const string Score = "score";
-
         public Query BuildRequest(SearchRequest request, string indexName)
         {
             var query = new Query(request.SearchKeywords)
