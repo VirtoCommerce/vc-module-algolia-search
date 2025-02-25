@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using VirtoCommerce.AlgoliaSearchModule.Core;
 using VirtoCommerce.AlgoliaSearchModule.Data;
 using VirtoCommerce.Platform.Core.Modularity;
+using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Core.Settings;
 using VirtoCommerce.SearchModule.Core.Extensions;
 
@@ -27,6 +28,9 @@ namespace VirtoCommerce.AlgoliaSearchModule.Web
         {
             var settingsRegistrar = appBuilder.ApplicationServices.GetRequiredService<ISettingsRegistrar>();
             settingsRegistrar.RegisterSettings(ModuleConstants.Settings.AllSettings, ModuleInfo.Id);
+
+            var permissionsRegistrar = appBuilder.ApplicationServices.GetRequiredService<IPermissionsRegistrar>();
+            permissionsRegistrar.RegisterPermissions(ModuleInfo.Id, ModuleConstants.ModuleName, ModuleConstants.Security.Permissions.AllPermissions);
 
             if (Configuration.SearchProviderActive(ModuleConstants.ProviderName))
             {

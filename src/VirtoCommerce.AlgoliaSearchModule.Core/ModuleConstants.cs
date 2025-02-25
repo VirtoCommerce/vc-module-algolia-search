@@ -4,7 +4,20 @@ namespace VirtoCommerce.AlgoliaSearchModule.Core
 {
     public static class ModuleConstants
     {
+        public const string ModuleName = "AlgoliaSearch";
+
         public const string ProviderName = "AlgoliaSearch";
+
+        public static class Security
+        {
+            public static class Permissions
+            {
+                public const string Access = "algoliasearch:access";
+
+                public static string[] AllPermissions { get; } = { Access };
+
+            }
+        }
 
         public static class Settings
         {

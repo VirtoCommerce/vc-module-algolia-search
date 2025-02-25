@@ -4,6 +4,16 @@
     <version>3.801.0</version>
     <version-tag />
     <platformVersion>3.854.0</platformVersion>
+
+    <apps>
+        <app id="algolia_search">
+            <title>Algolia Search</title>
+            <description>Algolia Ddashboard</description>
+            <iconUrl>/apps/algolia_search/algolia-search-logo.svg</iconUrl>
+            <permission>algoliasearch:access</permission>
+        </app>
+    </apps>
+    
     <title>Algolia Search</title>
     <description>Indexed search functionality with Algolia Search Engine</description>
     <authors>
