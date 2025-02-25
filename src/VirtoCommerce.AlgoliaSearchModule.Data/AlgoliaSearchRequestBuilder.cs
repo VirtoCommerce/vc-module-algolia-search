@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Algolia.Search.Models.Search;
+using VirtoCommerce.AlgoliaSearchModule.Data.Extensions;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.SearchModule.Core.Model;
 using SearchRequest = VirtoCommerce.SearchModule.Core.Model.SearchRequest;
@@ -29,7 +30,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
         {
             // Ignore default _content field
             return request?.SearchFields?.ToList()
-                .Where(x=>!x.ToLowerInvariant().Equals("_content"))
+                .Where(x => !x.ToLowerInvariant().Equals("_content"))
                 .Select(x => x.ToLowerInvariant()).ToList();
         }
 
@@ -126,7 +127,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
             foreach (var val in termFilter.Values)
             {
-                if(!result.IsNullOrEmpty())
+                if (!result.IsNullOrEmpty())
                 {
                     result = $"{result} OR ";
                 }
@@ -218,13 +219,13 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             var lowerFilter = string.Empty;
             if (!string.IsNullOrEmpty(value.Lower))
             {
-                if(value.IncludeLower)
+                if (value.IncludeLower)
                 {
-                    lowerFilter = $"{fieldName}>={value.Lower}";
+                    lowerFilter = $"{fieldName}>={GetAlogilaRangeValue(value.Lower)}";
                 }
                 else
                 {
-                    lowerFilter = $"{fieldName}>{value.Lower}";
+                    lowerFilter = $"{fieldName}>{GetAlogilaRangeValue(value.Lower)}";
                 }
             }
 
@@ -233,20 +234,29 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             {
                 if (value.IncludeUpper)
                 {
-                    upperFilter = $"{fieldName}<={value.Upper}";
+                    upperFilter = $"{fieldName}<={GetAlogilaRangeValue(value.Upper)}";
                 }
                 else
                 {
-                    upperFilter = $"{fieldName}<{value.Upper}";
+                    upperFilter = $"{fieldName}<{GetAlogilaRangeValue(value.Upper)}";
                 }
             }
 
-            if(!string.IsNullOrEmpty(lowerFilter) && !string.IsNullOrEmpty(upperFilter))
+            if (!string.IsNullOrEmpty(lowerFilter) && !string.IsNullOrEmpty(upperFilter))
             {
                 return $"{lowerFilter} AND {upperFilter}";
             }
 
             return $"{lowerFilter}{upperFilter}";
+        }
+
+        private static string GetAlogilaRangeValue(string value)
+        {
+            if (DateTime.TryParse(value, out var dateTime))
+            {
+                return DateTimeExtension.DateTimeToUnixTimestamp(dateTime).ToString();
+            }
+            return value;
         }
 
         /// <summary>

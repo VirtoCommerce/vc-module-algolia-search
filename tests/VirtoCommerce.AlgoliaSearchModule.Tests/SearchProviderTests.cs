@@ -1,7 +1,5 @@
 using System.Linq;
 using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
-using VirtoCommerce.AlgoliaSearchModule.Data;
 using VirtoCommerce.SearchModule.Core.Model;
 using Xunit;
 
@@ -23,7 +21,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
 
             // Create index and add documents
             var primaryDocuments = GetPrimaryDocuments();
-            
+
             var response = await provider.IndexAsync(DocumentType, primaryDocuments);
 
             Assert.NotNull(response);
@@ -216,7 +214,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
             var request = new SearchRequest
             {
                 SearchKeywords = " shirt ",
-                SearchFields = new[] { "Content" },
+                SearchFields = ["__content"],
                 Take = 10,
             };
 
@@ -227,7 +225,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
             request = new SearchRequest
             {
                 SearchKeywords = "red shirt",
-                SearchFields = new[] { "Content" },
+                SearchFields = ["__content"],
                 Take = 10,
             };
 
@@ -245,7 +243,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
             {
                 Filter = new IdsFilter
                 {
-                    Values = new[] { "Item-2", "Item-3", "Item-9" },
+                    Values = ["Item-2", "Item-3", "Item-9"],
                 },
                 Take = 10,
             };
@@ -269,7 +267,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
                 Filter = new TermFilter
                 {
                     FieldName = "non-existent-field",
-                    Values = new[] { "value-does-not-matter" }
+                    Values = ["value-does-not-matter"]
                 },
                 Take = 10,
             };
@@ -285,11 +283,11 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
                 Filter = new TermFilter
                 {
                     FieldName = "Color",
-                    Values = new[]
-                    {
+                    Values =
+                    [
                         "non-existent-value-1",
                         "non-existent-value-2",
-                    }
+                    ]
                 },
                 Take = 10,
             };
@@ -304,12 +302,12 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
                 Filter = new TermFilter
                 {
                     FieldName = "Color",
-                    Values = new[]
-                    {
+                    Values =
+                    [
                         "Red",
                         "Blue",
                         "Black",
-                    }
+                    ]
                 },
                 Take = 10,
             };
@@ -324,12 +322,12 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
                 Filter = new TermFilter
                 {
                     FieldName = "Is",
-                    Values = new[]
-                    {
+                    Values =
+                    [
                         "Red",
                         "Blue",
                         "Black",
-                    }
+                    ]
                 },
                 Take = 10,
             };
@@ -344,12 +342,12 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
                 Filter = new TermFilter
                 {
                     FieldName = "Size",
-                    Values = new[]
-                    {
+                    Values =
+                    [
                         "1",
                         "2",
                         "3",
-                    }
+                    ]
                 },
                 Take = 10,
             };
@@ -392,7 +390,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
                 Filter = new TermFilter
                 {
                     FieldName = "HasMultiplePrices",
-                    Values = new[] { "tRue" } // Value should be case insensitive
+                    Values = ["tRue"] // Value should be case insensitive
                 },
                 Take = 10,
             };
@@ -407,7 +405,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
                 Filter = new TermFilter
                 {
                     FieldName = "HasMultiplePrices",
-                    Values = new[] { "fAlse" } // Value should be case insensitive
+                    Values = ["fAlse"] // Value should be case insensitive
                 },
                 Take = 10,
             };
@@ -429,10 +427,10 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
                 Filter = new RangeFilter
                 {
                     FieldName = "non-existent-field",
-                    Values = new[]
-                    {
+                    Values =
+                    [
                         new RangeFilterValue { Lower = "0", Upper = "4" },
-                    }
+                    ]
                 },
                 Take = 10,
             };
@@ -447,13 +445,13 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
                 Filter = new RangeFilter
                 {
                     FieldName = "Size",
-                    Values = new[]
-                    {
+                    Values =
+                    [
                         new RangeFilterValue { Lower = "0", Upper = "4" },
                         new RangeFilterValue { Lower = "", Upper = "4" },
                         new RangeFilterValue { Lower = null, Upper = "4" },
                         new RangeFilterValue { Lower = "4", Upper = "10" },
-                    }
+                    ]
                 },
                 Take = 10,
             };
@@ -823,12 +821,12 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
                     {
                         // Facets for non-existent fields should be ignored
                         FieldName = "non-existent-field",
-                        Values = new[] { "Red" }
+                        Values = ["Red"]
                     },
                     new TermAggregationRequest
                     {
                         FieldName = "Color",
-                        Values = new[] { "Red", "Blue", "White" }
+                        Values = ["Red", "Blue", "White"]
                     },
                 },
                 Take = 1,
@@ -856,7 +854,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
                     new TermAggregationRequest
                     {
                         FieldName = "Size",
-                        Values = new[] { "3", "4", "5" }
+                        Values = ["3", "4", "5"]
                     },
                 },
                 Take = 1,
@@ -921,7 +919,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
                     new TermAggregationRequest
                     {
                         FieldName = "Color",
-                        Values = new[] { "Red", "Blue", "Black", "Silver" }
+                        Values = ["Red", "Blue", "Black", "Silver"]
                     },
                 },
                 Filter = new AndFilter
@@ -931,12 +929,12 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
                         new TermFilter
                         {
                             FieldName = "Color",
-                            Values = new[] { "Red", "Blue" }
+                            Values = ["Red", "Blue"]
                         },
                         new TermFilter
                         {
                             FieldName = "Size",
-                            Values = new[] { "2", "4" }
+                            Values = ["2", "4"]
                         },
                     }
                 },

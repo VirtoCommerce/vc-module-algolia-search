@@ -6,7 +6,7 @@ using Algolia.Search.Clients;
 using Algolia.Search.Models.Common;
 using Algolia.Search.Models.Settings;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json.Linq;
+using VirtoCommerce.AlgoliaSearchModule.Data.Extensions;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Settings;
 using VirtoCommerce.SearchModule.Core.Exceptions;
@@ -28,11 +28,9 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
         public AlgoliaSearchProvider(IOptions<AlgoliaSearchOptions> algoliaSearchOptions, IOptions<SearchOptions> searchOptions, ISettingsManager settingsManager)
         {
-            if (algoliaSearchOptions == null)
-                throw new ArgumentNullException(nameof(algoliaSearchOptions));
+            ArgumentNullException.ThrowIfNull(algoliaSearchOptions);
 
-            if (searchOptions == null)
-                throw new ArgumentNullException(nameof(searchOptions));
+            ArgumentNullException.ThrowIfNull(searchOptions);
 
             _algoliaSearchOptions = algoliaSearchOptions.Value;
             _searchOptions = searchOptions.Value;
@@ -77,7 +75,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             var settingHasChanges = false;
 
             // define searchable attributes
-            foreach(var document in documents)
+            foreach (var document in documents)
             {
                 foreach (var field in document.Fields.OrderBy(f => f.Name))
                 {
@@ -86,7 +84,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                     {
                         if (settings.SearchableAttributes == null)
                         {
-                            settings.SearchableAttributes = new List<string>();
+                            settings.SearchableAttributes = [];
                         }
 
                         if (!settings.SearchableAttributes.Contains(fieldName))
@@ -130,7 +128,9 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             var existingReplicas = settings.Replicas;
 
             if (existingReplicas == null)
-                existingReplicas = new List<string>();
+            {
+                existingReplicas = [];
+            }
 
             var replicaSettings = GetSortReplicas(documentType);
             if (replicaSettings != null && replicaSettings.Length > 0)
@@ -151,7 +151,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                         var replicaSetting = new IndexSettings()
                         {
                             CustomRanking =
-                            new List<string> { replica.IsDescending ? $"desc({replica.FieldName})" : $"asc({replica.FieldName})" }
+                            [replica.IsDescending ? $"desc({replica.FieldName})" : $"asc({replica.FieldName})"]
                         };
                         await replicaIndex.SetSettingsAsync(replicaSetting);
                     }
@@ -159,12 +159,31 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             }
 
             // only update index if there are changes
-            if(settingHasChanges)
+            if (settingHasChanges)
+            {
                 await index.SetSettingsAsync(settings, forwardToReplicas: true);
+            }
 
-            var response = await index.SaveObjectsAsync(providerDocuments);
-
-            return CreateIndexingResult(response);
+            try
+            {
+                var response = await index.SaveObjectsAsync(providerDocuments);
+                return CreateIndexingResult(response);
+            }
+            catch (Exception ex)
+            {
+                // Log the error and continue with the next batch
+                // Assuming a logger is available
+                //_logger.LogError(ex, "One of the products reached the size limit. Continuing with the next batch.");
+                return new IndexingResult
+                {
+                    Items = providerDocuments.Select(doc => new IndexingResultItem
+                    {
+                        Id = doc.ObjectID,
+                        Succeeded = false,
+                        ErrorMessage = ex.Message
+                    }).ToArray()
+                };
+            }
         }
 
         public virtual async Task<IndexingResult> RemoveAsync(string documentType, IList<IndexDocument> documents)
@@ -246,22 +265,31 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
 
                     // Only support single field geo location
-                    if(field.Value is GeoPoint)
+                    if (field.Value is GeoPoint)
                     {
                         value = new { lat = point.Latitude, lng = point.Longitude };
                         fieldName = "_geoloc";
                     }
 
-                    result.Add(fieldName, value);
+                    if (field.ValueType == IndexDocumentFieldValueType.DateTime)
+                    {
+                        result.Add(fieldName, DateTimeExtension.DateTimeToUnixTimestamp((DateTime)value));
+                    }
+                    else
+                    {
+                        result.Add(fieldName, value);
+                    }
                 }
 
                 // handle special indexationdate field, need to convert it to sortable numeric value
                 // https://www.algolia.com/doc/guides/managing-results/refine-results/sorting/how-to/sort-an-index-by-date/
-                if(field.Name.Equals("indexationdate", StringComparison.OrdinalIgnoreCase))
+                if (field.Name.Equals("indexationdate", StringComparison.OrdinalIgnoreCase))
                 {
-                    result.Add("indexationdate_timestamp", DateTimeToUnixTimestamp((DateTime)field.Value));
+                    result.Add("indexationdate_timestamp", DateTimeExtension.DateTimeToUnixTimestamp((DateTime)field.Value));
                 }
-                
+
+
+
             }
 
             return result;
@@ -272,7 +300,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
         {
             var ids = new List<string>();
 
-            foreach(var response in results.Responses)
+            foreach (var response in results.Responses)
             {
                 ids.AddRange(response.ObjectIDs);
             }
@@ -312,7 +340,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
         protected virtual AlgoliaIndexSortReplica[] GetSortReplicas(string documentType)
         {
-            var replicas = _settingsManager.GetValue("VirtoCommerce.Search.AlgoliaSearch.SortReplicas", new[] { "product:name-asc", "product:name-desc", "product:price-asc", "product:price-desc", "indexationdate_timestamp-desc" });
+            var replicas = _settingsManager.GetValue<string[]>(VirtoCommerce.AlgoliaSearchModule.Core.ModuleConstants.Settings.Indexing.SortReplicas);
 
             if (replicas == null)
                 return null;
@@ -353,13 +381,6 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             }
 
             return sortReplicas.ToArray();
-        }
-
-        public static double DateTimeToUnixTimestamp(DateTime dateTime)
-        {
-            DateTime unixStart = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc);
-            long unixTimeStampInTicks = (dateTime.ToUniversalTime() - unixStart).Ticks;
-            return (double)unixTimeStampInTicks / TimeSpan.TicksPerSecond;
         }
     }
 }

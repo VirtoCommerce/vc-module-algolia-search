@@ -39,10 +39,11 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
 
             var elasticOptions = Options.Create(
                 new
-                    AlgoliaSearchOptions {
-                        AppId = appId,
-                        ApiKey = apiLKey
-                    }
+                    AlgoliaSearchOptions
+                {
+                    AppId = appId,
+                    ApiKey = apiLKey
+                }
             );
             var searchOptions = Options.Create(new SearchOptions { Scope = "test-core", Provider = "AlgoliaSearch" });
 
