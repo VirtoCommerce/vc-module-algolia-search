@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Algolia.Search.Clients;
 using Algolia.Search.Models.Common;
 using Algolia.Search.Models.Settings;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using VirtoCommerce.AlgoliaSearchModule.Data.Extensions;
 using VirtoCommerce.Platform.Core.Common;
@@ -25,17 +26,22 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
         private readonly AlgoliaSearchOptions _algoliaSearchOptions;
         private readonly SearchOptions _searchOptions;
         private readonly ISettingsManager _settingsManager;
+        private readonly ILogger<AlgoliaSearchProvider> _logger;
 
-        public AlgoliaSearchProvider(IOptions<AlgoliaSearchOptions> algoliaSearchOptions, IOptions<SearchOptions> searchOptions, ISettingsManager settingsManager)
+        public AlgoliaSearchProvider(IOptions<AlgoliaSearchOptions> algoliaSearchOptions,
+            IOptions<SearchOptions> searchOptions,
+            ISettingsManager settingsManager,
+            ILogger<AlgoliaSearchProvider> logger)
         {
             ArgumentNullException.ThrowIfNull(algoliaSearchOptions);
-
             ArgumentNullException.ThrowIfNull(searchOptions);
+            ArgumentNullException.ThrowIfNull(settingsManager);
+            ArgumentNullException.ThrowIfNull(logger);
 
             _algoliaSearchOptions = algoliaSearchOptions.Value;
             _searchOptions = searchOptions.Value;
-
-            _settingsManager = settingsManager ?? throw new ArgumentNullException(nameof(settingsManager));
+            _settingsManager = settingsManager;
+            _logger = logger;
         }
 
         private SearchClient _client;
@@ -44,7 +50,9 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
         public virtual async Task DeleteIndexAsync(string documentType)
         {
             if (string.IsNullOrEmpty(documentType))
+            {
                 throw new ArgumentNullException(nameof(documentType));
+            }
 
             try
             {
@@ -54,10 +62,12 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                 {
                     var index = Client.InitIndex(indexName);
                     await index.DeleteAsync();
+                    _logger.LogInformation("Index {IndexName} deleted successfully.", indexName);
                 }
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Failed to delete index {DocumentType}.", documentType);
                 ThrowException("Failed to delete index", ex);
             }
         }
@@ -67,7 +77,6 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             var indexName = GetIndexName(documentType);
             var providerDocuments = documents.Select(document => ConvertToProviderDocument(document, documentType)).ToList();
 
-            //var indexExists = await IndexExistsAsync(documentType);
             var index = Client.InitIndex(indexName);
 
             // get current setting, so we can update them with new fields if needed
@@ -124,13 +133,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                 }
             }
 
-            // set replicas
-            var existingReplicas = settings.Replicas;
-
-            if (existingReplicas == null)
-            {
-                existingReplicas = [];
-            }
+            var existingReplicas = settings.Replicas ?? new List<string>();
 
             var replicaSettings = GetSortReplicas(documentType);
             if (replicaSettings != null && replicaSettings.Length > 0)
@@ -150,8 +153,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                         var replicaIndex = Client.InitIndex(replicaName);
                         var replicaSetting = new IndexSettings()
                         {
-                            CustomRanking =
-                            [replica.IsDescending ? $"desc({replica.FieldName})" : $"asc({replica.FieldName})"]
+                            CustomRanking = [replica.IsDescending ? $"desc({replica.FieldName})" : $"asc({replica.FieldName})"]
                         };
                         await replicaIndex.SetSettingsAsync(replicaSetting);
                     }
@@ -167,13 +169,12 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             try
             {
                 var response = await index.SaveObjectsAsync(providerDocuments);
+                _logger.LogInformation("Indexed {DocumentCount} documents in index {IndexName}.", documents.Count, indexName);
                 return CreateIndexingResult(response);
             }
             catch (Exception ex)
             {
-                // Log the error and continue with the next batch
-                // Assuming a logger is available
-                //_logger.LogError(ex, "One of the products reached the size limit. Continuing with the next batch.");
+                _logger.LogError(ex, "Error occurred while indexing documents in index {IndexName}.", indexName);
                 return new IndexingResult
                 {
                     Items = providerDocuments.Select(doc => new IndexingResultItem
@@ -198,9 +199,11 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                 var ids = documents.Select(d => d.Id);
                 var response = await index.DeleteObjectsAsync(ids.ToArray());
                 result = CreateIndexingResult(response);
+                _logger.LogInformation("Removed {DocumentCount} documents from index {IndexName}.", documents.Count, indexName);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Failed to remove documents from index {DocumentType}.", documentType);
                 throw new SearchException(ex.Message, ex);
             }
 
@@ -219,10 +222,12 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                 var response = await indexClient.SearchAsync<SearchDocument>(providerQuery);
 
                 var result = response.ToSearchResponse(request);
+                _logger.LogInformation("Search completed on index {IndexName} for document type {DocumentType}.", indexName, documentType);
                 return result;
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Search failed on index {IndexName} for document type {DocumentType}.", indexName, documentType);
                 throw new SearchException(ex.Message, ex);
             }
         }
@@ -259,7 +264,6 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                 {
                     var isCollection = field.IsCollection || field.Values.Count > 1;
 
-
                     var point = field.Value as GeoPoint;
                     var value = isCollection ? field.Values : field.Value;
 
@@ -287,14 +291,10 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                 {
                     result.Add("indexationdate_timestamp", DateTimeExtension.DateTimeToUnixTimestamp((DateTime)field.Value));
                 }
-
-
-
             }
 
             return result;
         }
-
 
         protected virtual IndexingResult CreateIndexingResult(BatchIndexingResponse results)
         {
@@ -317,7 +317,6 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
         protected virtual string GetIndexName(string documentType)
         {
-            // Use different index for each document type
             return string.Join("-", _searchOptions.Scope, documentType).ToLowerInvariant();
         }
 
@@ -357,7 +356,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                 {
                     replicaDocumentType = replicaArray[0];
                     if (!replicaDocumentType.Equals(documentType, StringComparison.OrdinalIgnoreCase))
-                        continue; // skip if type doesn't match
+                        continue;
 
                     fieldNameWithSort = replicaArray[1];
                 }

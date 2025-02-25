@@ -1,5 +1,7 @@
 using System;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Moq;
 using VirtoCommerce.AlgoliaSearchModule.Data;
 using VirtoCommerce.SearchModule.Core.Model;
 using VirtoCommerce.SearchModule.Core.Services;
@@ -38,8 +40,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
             var apiLKey = Environment.GetEnvironmentVariable("AlgoliaApiKey");
 
             var elasticOptions = Options.Create(
-                new
-                    AlgoliaSearchOptions
+                new AlgoliaSearchOptions
                 {
                     AppId = appId,
                     ApiKey = apiLKey
@@ -47,7 +48,8 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
             );
             var searchOptions = Options.Create(new SearchOptions { Scope = "test-core", Provider = "AlgoliaSearch" });
 
-            var provider = new AlgoliaSearchProvider(elasticOptions, searchOptions, GetSettingsManager());
+            var loggerMock = new Mock<ILogger<AlgoliaSearchProvider>>();
+            var provider = new AlgoliaSearchProvider(elasticOptions, searchOptions, GetSettingsManager(), loggerMock.Object);
             return provider;
         }
     }
