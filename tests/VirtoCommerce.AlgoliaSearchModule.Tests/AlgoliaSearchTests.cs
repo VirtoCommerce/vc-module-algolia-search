@@ -13,6 +13,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
     [Trait("Category", "IntegrationTest")]
     public class AlgoliaSearchTests : SearchProviderTests, IDisposable
     {
+
         public AlgoliaSearchTests()
         {
             var provider = GetSearchProvider();
@@ -26,12 +27,6 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
             var response = provider.IndexAsync(DocumentType, primaryDocuments).Result;
             var secondaryDocuments = GetSecondaryDocuments();
             response = provider.IndexAsync(DocumentType, secondaryDocuments).Result;
-        }
-
-        public void Dispose()
-        {
-            //var provider = GetSearchProvider();
-            //provider.DeleteIndexAsync(DocumentType).Wait();
         }
 
         protected override ISearchProvider GetSearchProvider()
@@ -51,6 +46,17 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
             var loggerMock = new Mock<ILogger<AlgoliaSearchProvider>>();
             var provider = new AlgoliaSearchProvider(elasticOptions, searchOptions, GetSettingsManager(), loggerMock.Object);
             return provider;
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+        }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }

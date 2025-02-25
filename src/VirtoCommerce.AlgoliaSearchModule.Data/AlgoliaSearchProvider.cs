@@ -59,7 +59,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
                 if (await IndexExistsAsync(indexName))
                 {
-                    var index = await Client.DeleteIndexAsync(indexName);
+                    await Client.DeleteIndexAsync(indexName);
                     _logger.LogInformation("Index {IndexName} deleted successfully.", indexName);
                 }
             }
@@ -255,11 +255,9 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             {
                 var fieldName = AlgoliaSearchHelper.ToAlgoliaFieldName(field.Name);
 
-                if (result.ContainsKey(fieldName))
+                if (result.TryGetValue(fieldName, out var currentValue))
                 {
                     var newValues = new List<object>();
-
-                    var currentValue = result[fieldName];
 
                     if (currentValue is object[] currentValues)
                     {
