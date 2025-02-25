@@ -70,7 +70,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
                         if (requestAggregation != null)
                         {
-                            IList<string> requestValues = (requestAggregation as TermAggregationRequest)?.Values;
+                            var requestValues = (requestAggregation as TermAggregationRequest)?.Values;
 
                             var aggregation = new AggregationResponse
                             {
