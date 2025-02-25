@@ -62,7 +62,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             {
                 foreach (var field in searchResponseAggregations.Keys)
                 {
-                    if (searchResponseAggregations.Values.Any())
+                    if (searchResponseAggregations.Values.Count > 0)
                     {
                         var requestAggregation = request.Aggregations.SingleOrDefault(
                             x => (!string.IsNullOrEmpty(x.FieldName) && AlgoliaSearchHelper.ToAlgoliaFieldName(x.FieldName).Equals(field, StringComparison.OrdinalIgnoreCase))

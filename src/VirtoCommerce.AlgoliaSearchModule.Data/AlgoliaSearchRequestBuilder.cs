@@ -27,7 +27,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             return query;
         }
 
-        protected List<string> GetSearchableAttributes(SearchRequest request)
+        protected static List<string> GetSearchableAttributes(SearchRequest request)
         {
             // Ignore default _content field
             return request?.SearchFields?.ToList()
@@ -40,7 +40,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             return GetFilterQueryRecursive(request.Filter);
         }
 
-        protected string GetGeoFilter(SearchRequest request)
+        protected static string GetGeoFilter(SearchRequest request)
         {
             if (request.Sorting != null && request.Sorting.Count > 0 && request.Sorting[0] is GeoDistanceSortingField)
             {
