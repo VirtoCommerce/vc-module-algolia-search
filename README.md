@@ -3,10 +3,13 @@
 The Virto Commerce Algolia Search module implements ISearchProvider defined in the Virto Commerce Core module and uses [Algolia search cloud service](https://algolia.com).
 
 ## Key features
-1. Enable to use Algolia search cloud service for indexing and searching products, categories, and other entities.
+1. Connects Virto Commerce with Algolia’s powerful search and filtering capabilities.
+1. Ensures real-time synchronization of product data for accurate and up-to-date search results.
+1. AI-driven search with typo tolerance, synonyms, and relevance tuning.
+1. Enables advanced filtering options (e.g., price, category, attributes).
 
 ## Configuration
-Azure Search provider are configurable by these configuration keys:
+Algolia Search provider are configurable by these configuration keys:
 
 * **Search.Provider** is the name of the search provider and must be **AlgoliaSearch**
 * **Search.AlgoliaSearch.ApiId** is a Application ID for algolia server.
