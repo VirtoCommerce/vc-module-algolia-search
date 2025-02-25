@@ -20,19 +20,20 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             };
         }
 
-        public static SearchDocument ToSearchDocument(SearchDocument hit)
+        public static SearchDocument ToSearchDocument(SearchDocument fields)
         {
-            var result = new SearchDocument { Id = hit[AlgoliaSearchHelper.RawKeyFieldName].ToString() };
+            var result = new SearchDocument { Id = fields[AlgoliaSearchHelper.RawKeyFieldName].ToString() };
 
-            if (hit is IDictionary<string, object> fields)
+            foreach (var kvp in fields)
             {
-                foreach (var kvp in fields)
+                var name = kvp.Key;
+                if (kvp.Value is JsonElement jsonElement)
                 {
-                    var name = kvp.Key;
-                    if (kvp.Value is JsonElement jsonElement)
-                    {
-                        result.Add(name, ConvertJsonElement(jsonElement));
-                    }
+                    result.Add(name, ConvertJsonElement(jsonElement));
+                }
+                else
+                {
+                    result.Add(name, kvp.Value);
                 }
             }
 
