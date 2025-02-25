@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Algolia.Search.Clients;
-using Algolia.Search.Models.Common;
-using Algolia.Search.Models.Settings;
+using Algolia.Search.Models.Search;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using VirtoCommerce.AlgoliaSearchModule.Data.Extensions;
@@ -60,8 +59,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
                 if (await IndexExistsAsync(indexName))
                 {
-                    var index = Client.InitIndex(indexName);
-                    await index.DeleteAsync();
+                    var index = await Client.DeleteIndexAsync(indexName);
                     _logger.LogInformation("Index {IndexName} deleted successfully.", indexName);
                 }
             }
@@ -77,10 +75,26 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             var indexName = GetIndexName(documentType);
             var providerDocuments = documents.Select(document => ConvertToProviderDocument(document, documentType)).ToList();
 
-            var index = Client.InitIndex(indexName);
-
             // get current setting, so we can update them with new fields if needed
-            var settings = await index.ExistsAsync() ? await index.GetSettingsAsync() : new IndexSettings();
+            var settings = new IndexSettings();
+
+            if (await Client.IndexExistsAsync(indexName))
+            {
+                var currentSettings = (await Client.GetSettingsAsync(indexName));
+
+                settings = new IndexSettings
+                {
+                    Ranking = currentSettings.Ranking,
+                    CustomRanking = currentSettings.CustomRanking,
+                    SearchableAttributes = currentSettings.SearchableAttributes,
+                    AttributesForFaceting = currentSettings.AttributesForFaceting,
+                    Replicas = currentSettings.Replicas,
+                    TypoTolerance = currentSettings.TypoTolerance,
+                    RemoveStopWords = currentSettings.RemoveStopWords,
+                    IgnorePlurals = currentSettings.IgnorePlurals,
+                };
+            }
+
             var settingHasChanges = false;
 
             // define searchable attributes
@@ -150,12 +164,13 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                     foreach (var replica in replicaSettings)
                     {
                         var replicaName = AlgoliaSearchHelper.ToAlgoliaReplicaName(indexName, replica);
-                        var replicaIndex = Client.InitIndex(replicaName);
+
                         var replicaSetting = new IndexSettings()
                         {
                             CustomRanking = [replica.IsDescending ? $"desc({replica.FieldName})" : $"asc({replica.FieldName})"]
                         };
-                        await replicaIndex.SetSettingsAsync(replicaSetting);
+
+                        await Client.SetSettingsAsync(replicaName, replicaSetting);
                     }
                 }
             }
@@ -163,12 +178,12 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             // only update index if there are changes
             if (settingHasChanges)
             {
-                await index.SetSettingsAsync(settings, forwardToReplicas: true);
+                await Client.SetSettingsAsync(indexName, settings, forwardToReplicas: true);
             }
 
             try
             {
-                var response = await index.SaveObjectsAsync(providerDocuments);
+                var response = await Client.SaveObjectsAsync(indexName, providerDocuments);
                 _logger.LogInformation("Indexed {DocumentCount} documents in index {IndexName}.", documents.Count, indexName);
                 return CreateIndexingResult(response);
             }
@@ -194,10 +209,9 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             try
             {
                 var indexName = GetIndexName(documentType);
-                var index = Client.InitIndex(indexName);
 
                 var ids = documents.Select(d => d.Id);
-                var response = await index.DeleteObjectsAsync(ids.ToArray());
+                var response = await Client.DeleteObjectsAsync(indexName, ids.ToArray());
                 result = CreateIndexingResult(response);
                 _logger.LogInformation("Removed {DocumentCount} documents from index {IndexName}.", documents.Count, indexName);
             }
@@ -216,10 +230,9 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
             try
             {
-                var indexClient = Client.InitIndex(indexName);
-
                 var providerQuery = new AlgoliaSearchRequestBuilder().BuildRequest(request, indexName);
-                var response = await indexClient.SearchAsync<SearchDocument>(providerQuery);
+
+                var response = await Client.SearchSingleIndexAsync<SearchDocument>(indexName, new SearchParams(providerQuery));
 
                 var result = response.ToSearchResponse(request);
                 _logger.LogInformation("Search completed on index {IndexName} for document type {DocumentType}.", indexName, documentType);
@@ -296,14 +309,15 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             return result;
         }
 
-        protected virtual IndexingResult CreateIndexingResult(BatchIndexingResponse results)
+        protected virtual IndexingResult CreateIndexingResult(IList<BatchResponse> results)
         {
             var ids = new List<string>();
 
-            foreach (var response in results.Responses)
+            foreach (var response in results)
             {
                 ids.AddRange(response.ObjectIDs);
             }
+
             return new IndexingResult
             {
                 Items = ids.Select(r => new IndexingResultItem
@@ -333,7 +347,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
         protected virtual SearchClient CreateSearchServiceClient()
         {
-            var result = new SearchClient(_algoliaSearchOptions.AppId, _algoliaSearchOptions.ApiKey);
+            var result = new SearchClient(new SearchConfig(_algoliaSearchOptions.AppId, _algoliaSearchOptions.ApiKey));
             return result;
         }
 

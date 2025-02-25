@@ -11,10 +11,11 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 {
     public class AlgoliaSearchRequestBuilder
     {
-        public Query BuildRequest(SearchRequest request, string indexName)
+        public SearchParamsObject BuildRequest(SearchRequest request, string indexName)
         {
-            var query = new Query(request.SearchKeywords)
+            var query = new SearchParamsObject
             {
+                Query = request.SearchKeywords,
                 Offset = request?.Skip,
                 Length = request?.Take,
                 RestrictSearchableAttributes = GetSearchableAttributes(request),

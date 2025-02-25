@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using Algolia.Search.Models.Search;
-using Newtonsoft.Json.Linq;
 using VirtoCommerce.SearchModule.Core.Model;
 using SearchRequest = VirtoCommerce.SearchModule.Core.Model.SearchRequest;
 
@@ -12,43 +12,48 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
     {
         public static SearchResponse ToSearchResponse(this SearchResponse<SearchDocument> response, SearchRequest request)
         {
-            var result = new SearchResponse
+            return new SearchResponse
             {
-                TotalCount = response.NbHits,
+                TotalCount = (long)response.NbHits,
                 Documents = response.Hits.Select(ToSearchDocument).ToList(),
                 Aggregations = GetAggregations(response.Facets, request)
             };
-
-            return result;
         }
 
         public static SearchDocument ToSearchDocument(SearchDocument hit)
         {
             var result = new SearchDocument { Id = hit[AlgoliaSearchHelper.RawKeyFieldName].ToString() };
 
-            // Copy fields and convert JArray to object[]
-            var fields = (IDictionary<string, object>)hit;
-
-            if (fields != null)
+            if (hit is IDictionary<string, object> fields)
             {
                 foreach (var kvp in fields)
                 {
                     var name = kvp.Key;
-                    var value = kvp.Value;
-
-                    if (value is JArray jArray)
+                    if (kvp.Value is JsonElement jsonElement)
                     {
-                        value = jArray.ToObject<object[]>();
+                        result.Add(name, ConvertJsonElement(jsonElement));
                     }
-
-                    result.Add(name, value);
                 }
             }
 
             return result;
         }
 
-        private static IList<AggregationResponse> GetAggregations(Dictionary<string, Dictionary<string, long>> searchResponseAggregations, SearchRequest request)
+        private static object ConvertJsonElement(JsonElement jsonElement)
+        {
+            return jsonElement.ValueKind switch
+            {
+                JsonValueKind.Array => jsonElement.EnumerateArray().Select(x => x.ToString()).ToArray(),
+                JsonValueKind.String => jsonElement.GetString(),
+                JsonValueKind.Number => jsonElement.GetDouble(),
+                JsonValueKind.True or JsonValueKind.False => jsonElement.GetBoolean(),
+                JsonValueKind.Object => jsonElement.ToString(),
+                JsonValueKind.Null => null,
+                _ => throw new InvalidOperationException($"Unsupported JsonValueKind: {jsonElement.ValueKind}")
+            };
+        }
+
+        private static IList<AggregationResponse> GetAggregations(Dictionary<string, Dictionary<string, int>> searchResponseAggregations, SearchRequest request)
         {
             var result = new List<AggregationResponse>();
 
@@ -58,28 +63,25 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                 {
                     if (searchResponseAggregations.Values.Any())
                     {
-                        IList<string> requestValues = null;
-                        var requestAggregation = request.Aggregations.Where(
-                                x =>
-                                    (!string.IsNullOrEmpty(x.FieldName) && AlgoliaSearchHelper.ToAlgoliaFieldName(x.FieldName).Equals(field, StringComparison.OrdinalIgnoreCase))
-                                    ||
-                                    (!string.IsNullOrEmpty(x.Id) && AlgoliaSearchHelper.ToAlgoliaFieldName(x.Id).Equals(field, StringComparison.OrdinalIgnoreCase))
-                            ).SingleOrDefault();
-                        if(requestAggregation is TermAggregationRequest)
+                        var requestAggregation = request.Aggregations.SingleOrDefault(
+                            x => (!string.IsNullOrEmpty(x.FieldName) && AlgoliaSearchHelper.ToAlgoliaFieldName(x.FieldName).Equals(field, StringComparison.OrdinalIgnoreCase))
+                                 || (!string.IsNullOrEmpty(x.Id) && AlgoliaSearchHelper.ToAlgoliaFieldName(x.Id).Equals(field, StringComparison.OrdinalIgnoreCase)));
+
+                        if (requestAggregation != null)
                         {
-                            requestValues = ((TermAggregationRequest)requestAggregation).Values;
+                            IList<string> requestValues = (requestAggregation as TermAggregationRequest)?.Values;
+
+                            var aggregation = new AggregationResponse
+                            {
+                                Id = string.IsNullOrEmpty(requestAggregation.FieldName) ? requestAggregation.Id : requestAggregation.FieldName,
+                                Values = searchResponseAggregations[field]
+                                    .Where(x => requestValues == null || requestValues.Contains(x.Key))
+                                    .Select(x => new AggregationResponseValue { Id = x.Key, Count = x.Value })
+                                    .ToList()
+                            };
+
+                            result.Add(aggregation);
                         }
-
-                        var aggregation = new AggregationResponse
-                        {
-                            Id = string.IsNullOrEmpty(requestAggregation.FieldName) ? requestAggregation.Id : requestAggregation.FieldName,
-                            Values = searchResponseAggregations[field].
-                            Where(
-                                x=>requestValues == null || requestValues.Contains(x.Key))
-                            .Select(x => new AggregationResponseValue() { Id = x.Key, Count = x.Value }).ToList()
-                        };
-
-                        result.Add(aggregation);
                     }
                 }
             }
