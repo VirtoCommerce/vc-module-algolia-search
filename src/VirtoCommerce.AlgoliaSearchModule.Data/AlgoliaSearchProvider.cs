@@ -231,6 +231,10 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                     _logger.LogWarning("Replica Index {IndexName} not found for document type {DocumentType}.", indexName, documentType);
 
                     indexName = GetIndexName(documentType);
+                    if (!await Client.IndexExistsAsync(indexName))
+                    {
+                        return new SearchResponse();
+                    }
                 }
 
 
