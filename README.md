@@ -22,6 +22,17 @@ Algolia Search provider are configurable by these configuration keys:
 }
 ```
 
+## Sorting results
+Algolia uses one ranking strategy per index. If you want to use different rankings for the same data, you can use replica indices.
+
+To configure available replicas, go to Settings > Algolia search > Sorting.
+
+To help you identify your replica indices, adopt a naming pattern such as {documentType}:{sortingAttribute}-{asc or desc}.
+
+For example, product:price-desc is a replica index of your products index, where the results are sorted by the price attribute in descending order.
+
+If replica indices are not configured, the default index is used and a warning message is added to the log.
+
 ## Documentation
 
 * [Algolia Search module user documentation](https://docs.virtocommerce.org/platform/user-guide/algolia/overview/)

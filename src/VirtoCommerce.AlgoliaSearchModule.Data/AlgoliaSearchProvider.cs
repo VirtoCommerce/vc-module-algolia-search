@@ -147,7 +147,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                 }
             }
 
-            var existingReplicas = settings.Replicas ?? new List<string>();
+            var existingReplicas = settings.Replicas ?? [];
 
             var replicaSettings = GetSortReplicas(documentType);
             if (replicaSettings != null && replicaSettings.Length > 0)
@@ -230,6 +230,15 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
             try
             {
+                if (!await Client.IndexExistsAsync(indexName))
+                {
+                    // Fall back to default index name if replica index not found
+                    _logger.LogWarning("Replica Index {IndexName} not found for document type {DocumentType}.", indexName, documentType);
+
+                    indexName = GetIndexName(documentType);
+                }
+
+
                 var providerQuery = new AlgoliaSearchRequestBuilder().BuildRequest(request, indexName);
 
                 var response = await Client.SearchSingleIndexAsync<SearchDocument>(indexName, new SearchParams(providerQuery));
@@ -351,7 +360,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
         protected virtual AlgoliaIndexSortReplica[] GetSortReplicas(string documentType)
         {
-            var replicas = _settingsManager.GetValue<string[]>(VirtoCommerce.AlgoliaSearchModule.Core.ModuleConstants.Settings.Indexing.SortReplicas);
+            var replicas = _settingsManager.GetValue<string[]>(Core.ModuleConstants.Settings.Indexing.SortReplicas);
 
             if (replicas == null)
                 return null;

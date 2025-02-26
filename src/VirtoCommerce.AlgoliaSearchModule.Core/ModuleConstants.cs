@@ -29,8 +29,8 @@ namespace VirtoCommerce.AlgoliaSearchModule.Core
                     GroupName = "Search|AlgoliaSearch",
                     IsDictionary = true,
                     ValueType = SettingValueType.ShortText,
-                    AllowedValues = ["product:name-asc", "product:name-desc", "product:price-asc", "product:price-desc", "indexationdate_timestamp-desc"],
-                    DefaultValue = new[] { "product:name-asc", "product:name-desc", "product:price-asc", "product:price-desc", "indexationdate_timestamp-desc" }
+                    AllowedValues = ["product:name-asc", "product:name-desc", "product:price-asc", "product:price-desc", "customerorder:createddate-desc", "indexationdate_timestamp-desc"],
+                    DefaultValue = new[] { "product:name-asc", "product:name-desc", "product:price-asc", "product:price-desc", "customerorder:createddate-desc", "indexationdate_timestamp-desc" }
                 };
 
                 private static readonly SettingDescriptor VirtualSortReplicas = new()

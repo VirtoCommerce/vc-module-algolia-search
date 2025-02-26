@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using Algolia.Search.Models.Search;
+using VirtoCommerce.AlgoliaSearchModule.Data.Extensions;
 using VirtoCommerce.SearchModule.Core.Model;
 using SearchRequest = VirtoCommerce.SearchModule.Core.Model.SearchRequest;
 
@@ -29,7 +30,14 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                 var name = kvp.Key;
                 if (kvp.Value is JsonElement jsonElement)
                 {
-                    result.Add(name, ConvertJsonElement(jsonElement));
+                    if (IsDateTimeField(name))
+                    {
+                        result.Add(name, DateTimeExtension.UnixTimestampToDateTime((long)(double)ConvertJsonElement(jsonElement)));
+                    }
+                    else
+                    {
+                        result.Add(name, ConvertJsonElement(jsonElement));
+                    }
                 }
                 else
                 {
@@ -38,6 +46,13 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             }
 
             return result;
+        }
+
+        private static bool IsDateTimeField(string name)
+        {
+            return name.Equals("indexationdate", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("createddate", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("modifieddate", StringComparison.OrdinalIgnoreCase);
         }
 
         private static object ConvertJsonElement(JsonElement jsonElement)
