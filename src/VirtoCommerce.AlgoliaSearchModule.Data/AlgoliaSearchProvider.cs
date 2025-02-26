@@ -48,10 +48,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
         public virtual async Task DeleteIndexAsync(string documentType)
         {
-            if (string.IsNullOrEmpty(documentType))
-            {
-                throw new ArgumentNullException(nameof(documentType));
-            }
+            ArgumentNullException.ThrowIfNullOrEmpty(documentType);
 
             try
             {
@@ -76,24 +73,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             var providerDocuments = documents.Select(document => ConvertToProviderDocument(document, documentType)).ToList();
 
             // get current setting, so we can update them with new fields if needed
-            var settings = new IndexSettings();
-
-            if (await Client.IndexExistsAsync(indexName))
-            {
-                var currentSettings = (await Client.GetSettingsAsync(indexName));
-
-                settings = new IndexSettings
-                {
-                    Ranking = currentSettings.Ranking,
-                    CustomRanking = currentSettings.CustomRanking,
-                    SearchableAttributes = currentSettings.SearchableAttributes,
-                    AttributesForFaceting = currentSettings.AttributesForFaceting,
-                    Replicas = currentSettings.Replicas,
-                    TypoTolerance = currentSettings.TypoTolerance,
-                    RemoveStopWords = currentSettings.RemoveStopWords,
-                    IgnorePlurals = currentSettings.IgnorePlurals,
-                };
-            }
+            var settings = await GetIndexSettings(indexName);
 
             var settingHasChanges = false;
 
@@ -105,11 +85,6 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                     var fieldName = AlgoliaSearchHelper.ToAlgoliaFieldName(field.Name);
                     if (field.IsSearchable)
                     {
-                        if (settings.SearchableAttributes == null)
-                        {
-                            settings.SearchableAttributes = [];
-                        }
-
                         if (!settings.SearchableAttributes.Contains(fieldName))
                         {
                             settings.SearchableAttributes.Add(fieldName);
@@ -119,11 +94,6 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
                     if (field.IsFilterable)
                     {
-                        if (settings.AttributesForFaceting == null)
-                        {
-                            settings.AttributesForFaceting = new List<string>();
-                        }
-
                         if (!settings.AttributesForFaceting.Contains(fieldName))
                         {
                             settings.AttributesForFaceting.Add(fieldName);
@@ -133,11 +103,6 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
                     if (field.IsRetrievable)
                     {
-                        if (settings.AttributesToRetrieve == null)
-                        {
-                            settings.AttributesToRetrieve = new List<string>();
-                        }
-
                         if (!settings.AttributesToRetrieve.Contains(fieldName))
                         {
                             settings.AttributesToRetrieve.Add(fieldName);
@@ -202,6 +167,36 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             }
         }
 
+        private async Task<IndexSettings> GetIndexSettings(string indexName)
+        {
+            var settings = new IndexSettings();
+
+            if (await Client.IndexExistsAsync(indexName))
+            {
+                var currentSettings = (await Client.GetSettingsAsync(indexName));
+
+                settings = new IndexSettings
+                {
+                    Ranking = currentSettings.Ranking,
+                    CustomRanking = currentSettings.CustomRanking,
+                    SearchableAttributes = currentSettings.SearchableAttributes,
+                    AttributesForFaceting = currentSettings.AttributesForFaceting,
+                    Replicas = currentSettings.Replicas,
+                    TypoTolerance = currentSettings.TypoTolerance,
+                    RemoveStopWords = currentSettings.RemoveStopWords,
+                    IgnorePlurals = currentSettings.IgnorePlurals,
+                };
+            }
+
+            settings.SearchableAttributes ??= [];
+
+            settings.AttributesForFaceting ??= [];
+
+            settings.AttributesToRetrieve ??= [];
+
+            return settings;
+        }
+
         public virtual async Task<IndexingResult> RemoveAsync(string documentType, IList<IndexDocument> documents)
         {
             IndexingResult result;
@@ -239,7 +234,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                 }
 
 
-                var providerQuery = new AlgoliaSearchRequestBuilder().BuildRequest(request, indexName);
+                var providerQuery = new AlgoliaSearchRequestBuilder().BuildRequest(request);
 
                 var response = await Client.SearchSingleIndexAsync<SearchDocument>(indexName, new SearchParams(providerQuery));
 
