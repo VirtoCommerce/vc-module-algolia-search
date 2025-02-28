@@ -227,7 +227,9 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                 {
                     var filter = GetFilterQueryRecursive(childQuery, exlcudeFacetFilter);
                     if (string.IsNullOrEmpty(filter))
+                    {
                         continue;
+                    }
 
                     if (!result.IsNullOrEmpty())
                     {
@@ -250,7 +252,9 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                 {
                     var filter = GetFilterQueryRecursive(childQuery, exlcudeFacetFilter);
                     if (string.IsNullOrEmpty(filter))
+                    {
                         continue;
+                    }
 
                     if (!result.IsNullOrEmpty())
                     {

@@ -53,7 +53,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             _responseBuilder = responseBuilder;
             _logger = logger;
 
-            _client = CreateSearchClient(loggerFactory);
+            _client = new SearchClient(GetSearchConfig(), loggerFactory);
         }
 
         protected ISearchClient Client { get { return _client; } }
@@ -96,31 +96,26 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                 foreach (var field in document.Fields.OrderBy(f => f.Name))
                 {
                     var fieldName = AlgoliaSearchHelper.ToAlgoliaFieldName(field.Name);
-                    if (field.IsSearchable)
+                    if (field.IsSearchable &&
+                        !settings.SearchableAttributes.Contains(fieldName))
                     {
-                        if (!settings.SearchableAttributes.Contains(fieldName))
-                        {
-                            settings.SearchableAttributes.Add(fieldName);
-                            settingHasChanges = true;
-                        }
+                        settings.SearchableAttributes.Add(fieldName);
+                        settingHasChanges = true;
                     }
 
-                    if (field.IsFilterable)
+
+                    if (field.IsFilterable &&
+                        !settings.AttributesForFaceting.Contains(fieldName))
                     {
-                        if (!settings.AttributesForFaceting.Contains(fieldName))
-                        {
-                            settings.AttributesForFaceting.Add(fieldName);
-                            settingHasChanges = true;
-                        }
+                        settings.AttributesForFaceting.Add(fieldName);
+                        settingHasChanges = true;
                     }
 
-                    if (field.IsRetrievable)
+                    if (field.IsRetrievable &&
+                        !settings.AttributesToRetrieve.Contains(fieldName))
                     {
-                        if (!settings.AttributesToRetrieve.Contains(fieldName))
-                        {
-                            settings.AttributesToRetrieve.Add(fieldName);
-                            settingHasChanges = true;
-                        }
+                        settings.AttributesToRetrieve.Add(fieldName);
+                        settingHasChanges = true;
                     }
                 }
             }
@@ -296,26 +291,22 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
         private static bool HasFilter(IFilter filter, string fieldName)
         {
-            if (filter is INamedFilter)
+            switch (filter)
             {
-                var namedFilter = filter as INamedFilter;
-                return namedFilter.FieldName.EqualsInvariant(fieldName);
+                case INamedFilter:
+                    var namedFilter = filter as INamedFilter;
+                    return namedFilter.FieldName.EqualsInvariant(fieldName);
+                case NotFilter:
+                    var notFilter = filter as NotFilter;
+                    return HasFilter(notFilter.ChildFilter, fieldName);
+                case AndFilter:
+                    var andFilter = filter as AndFilter;
+                    return andFilter.ChildFilters.Any(x => HasFilter(x, fieldName));
+                case OrFilter:
+                    var orFilter = filter as OrFilter;
+                    return orFilter.ChildFilters.Any(x => HasFilter(x, fieldName));
             }
-            else if (filter is NotFilter)
-            {
-                var notFilter = filter as NotFilter;
-                return HasFilter(notFilter.ChildFilter, fieldName);
-            }
-            else if (filter is AndFilter)
-            {
-                var andFilter = filter as AndFilter;
-                return andFilter.ChildFilters.Any(x => HasFilter(x, fieldName));
-            }
-            else if (filter is OrFilter)
-            {
-                var orFilter = filter as OrFilter;
-                return orFilter.ChildFilters.Any(x => HasFilter(x, fieldName));
-            }
+
             return false;
         }
 
@@ -415,11 +406,6 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
         protected virtual void ThrowException(string message, Exception innerException)
         {
             throw new SearchException($"{message}. Search service name: {_algoliaSearchOptions.AppId}, Scope: {_searchOptions.Scope}", innerException);
-        }
-
-        protected virtual SearchClient CreateSearchClient(ILoggerFactory loggerFactory)
-        {
-            return new SearchClient(GetSearchConfig(), loggerFactory);
         }
 
         protected virtual SearchConfig GetSearchConfig()
