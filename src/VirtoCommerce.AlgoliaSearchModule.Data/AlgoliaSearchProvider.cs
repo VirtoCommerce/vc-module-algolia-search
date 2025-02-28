@@ -53,7 +53,9 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             _responseBuilder = responseBuilder;
             _logger = logger;
 
-            _client = new SearchClient(GetSearchConfig(), loggerFactory);
+            _client = new SearchClient(
+                new SearchConfig(_algoliaSearchOptions.AppId, _algoliaSearchOptions.ApiKey),
+                loggerFactory);
         }
 
         protected ISearchClient Client { get { return _client; } }
