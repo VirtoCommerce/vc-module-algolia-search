@@ -20,6 +20,9 @@ namespace VirtoCommerce.AlgoliaSearchModule.Web
             if (Configuration.SearchProviderActive(ModuleConstants.ProviderName))
             {
                 serviceCollection.Configure<AlgoliaSearchOptions>(Configuration.GetSection($"Search:{ModuleConstants.ProviderName}"));
+
+                serviceCollection.AddSingleton<IAlgoliaSearchRequestBuilder, AlgoliaSearchRequestBuilder>();
+                serviceCollection.AddSingleton<IAlgoliaSearchResponseBuilder, AlgoliaSearchResponseBuilder>();
                 serviceCollection.AddSingleton<AlgoliaSearchProvider>();
             }
         }

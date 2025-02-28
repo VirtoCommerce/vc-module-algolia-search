@@ -2,6 +2,7 @@ using System;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using VirtoCommerce.AlgoliaSearchModule.Core;
 using VirtoCommerce.AlgoliaSearchModule.Data;
 using VirtoCommerce.SearchModule.Core.Model;
 using VirtoCommerce.SearchModule.Core.Services;
@@ -44,7 +45,8 @@ namespace VirtoCommerce.AlgoliaSearchModule.Tests
             var searchOptions = Options.Create(new SearchOptions { Scope = "test-core", Provider = "AlgoliaSearch" });
 
             var loggerMock = new Mock<ILogger<AlgoliaSearchProvider>>();
-            var provider = new AlgoliaSearchProvider(elasticOptions, searchOptions, GetSettingsManager(), loggerMock.Object);
+            var provider = new AlgoliaSearchProvider(elasticOptions, searchOptions, GetSettingsManager(),
+                new AlgoliaSearchRequestBuilder(), new AlgoliaSearchResponseBuilder(), loggerMock.Object, null);
             return provider;
         }
 

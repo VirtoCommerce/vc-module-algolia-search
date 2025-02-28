@@ -3,25 +3,61 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using Algolia.Search.Models.Search;
+using VirtoCommerce.AlgoliaSearchModule.Core;
 using VirtoCommerce.AlgoliaSearchModule.Data.Extensions;
 using VirtoCommerce.SearchModule.Core.Model;
 using SearchRequest = VirtoCommerce.SearchModule.Core.Model.SearchRequest;
 
 namespace VirtoCommerce.AlgoliaSearchModule.Data
 {
-    public static class AlgoliaSearchResponseBuilder
+    public class AlgoliaSearchResponseBuilder : IAlgoliaSearchResponseBuilder
     {
-        public static SearchResponse ToSearchResponse(this SearchResponse<SearchDocument> response, SearchRequest request)
+        public SearchResponse ToSearchResponse(SearchResponses<SearchDocument> response, SearchRequest request)
         {
-            return new SearchResponse
+            var algoliaSearchResult = response.Results.First().AsSearchResponse();
+
+            var allFacets = new Dictionary<string, Dictionary<string, int>>();
+
+            var filterFacets = response.Results
+                .Skip(1)
+                .Select(x => x.AsSearchResponse())
+                .Select(x => x.Facets)
+                .Where(x => x != null);
+
+            foreach (var filterFacet in filterFacets)
             {
-                TotalCount = (long)response.NbHits,
-                Documents = response.Hits.Select(ToSearchDocument).ToList(),
-                Aggregations = GetAggregations(response.Facets, request)
+                foreach (var facet in filterFacet)
+                {
+                    if (!allFacets.ContainsKey(facet.Key))
+                    {
+                        allFacets[facet.Key] = facet.Value;
+                    }
+                }
+            }
+
+            if (algoliaSearchResult.Facets != null)
+            {
+                foreach (var facet in algoliaSearchResult.Facets)
+                {
+                    if (!allFacets.ContainsKey(facet.Key))
+                    {
+                        allFacets[facet.Key] = facet.Value;
+                    }
+                }
+            }
+
+            var searchResponse = new SearchResponse
+            {
+                TotalCount = (long)algoliaSearchResult.NbHits,
+                Documents = algoliaSearchResult.Hits.Select(ToSearchDocument).ToList(),
+                Aggregations = GetAggregations(allFacets, request)
             };
+
+            return searchResponse;
         }
 
-        public static SearchDocument ToSearchDocument(SearchDocument fields)
+
+        protected virtual SearchDocument ToSearchDocument(SearchDocument fields)
         {
             var result = new SearchDocument { Id = fields[AlgoliaSearchHelper.RawKeyFieldName].ToString() };
 
@@ -48,14 +84,14 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             return result;
         }
 
-        private static bool IsDateTimeField(string name)
+        protected virtual bool IsDateTimeField(string name)
         {
             return name.Equals("indexationdate", StringComparison.OrdinalIgnoreCase) ||
                 name.Equals("createddate", StringComparison.OrdinalIgnoreCase) ||
                 name.Equals("modifieddate", StringComparison.OrdinalIgnoreCase);
         }
 
-        private static object ConvertJsonElement(JsonElement jsonElement)
+        protected virtual object ConvertJsonElement(JsonElement jsonElement)
         {
             return jsonElement.ValueKind switch
             {
@@ -69,7 +105,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             };
         }
 
-        private static IList<AggregationResponse> GetAggregations(Dictionary<string, Dictionary<string, int>> searchResponseAggregations, SearchRequest request)
+        protected virtual IList<AggregationResponse> GetAggregations(Dictionary<string, Dictionary<string, int>> searchResponseAggregations, SearchRequest request)
         {
             var result = new List<AggregationResponse>();
 

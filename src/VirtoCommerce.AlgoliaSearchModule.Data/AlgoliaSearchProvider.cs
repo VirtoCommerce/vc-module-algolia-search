@@ -6,6 +6,7 @@ using Algolia.Search.Clients;
 using Algolia.Search.Models.Search;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using VirtoCommerce.AlgoliaSearchModule.Core;
 using VirtoCommerce.AlgoliaSearchModule.Data.Extensions;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Settings;
@@ -22,15 +23,23 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 {
     public class AlgoliaSearchProvider : ISearchProvider
     {
+        private readonly ISearchClient _client;
+
         private readonly AlgoliaSearchOptions _algoliaSearchOptions;
         private readonly SearchOptions _searchOptions;
         private readonly ISettingsManager _settingsManager;
+        private readonly IAlgoliaSearchRequestBuilder _requestBuilder;
+        private readonly IAlgoliaSearchResponseBuilder _responseBuilder;
         private readonly ILogger<AlgoliaSearchProvider> _logger;
 
-        public AlgoliaSearchProvider(IOptions<AlgoliaSearchOptions> algoliaSearchOptions,
+        public AlgoliaSearchProvider(
+            IOptions<AlgoliaSearchOptions> algoliaSearchOptions,
             IOptions<SearchOptions> searchOptions,
             ISettingsManager settingsManager,
-            ILogger<AlgoliaSearchProvider> logger)
+            IAlgoliaSearchRequestBuilder requestBuilder,
+            IAlgoliaSearchResponseBuilder responseBuilder,
+            ILogger<AlgoliaSearchProvider> logger,
+            ILoggerFactory loggerFactory)
         {
             ArgumentNullException.ThrowIfNull(algoliaSearchOptions);
             ArgumentNullException.ThrowIfNull(searchOptions);
@@ -40,11 +49,15 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             _algoliaSearchOptions = algoliaSearchOptions.Value;
             _searchOptions = searchOptions.Value;
             _settingsManager = settingsManager;
+            _requestBuilder = requestBuilder;
+            _responseBuilder = responseBuilder;
             _logger = logger;
+
+            _client = CreateSearchClient(loggerFactory);
         }
 
-        private SearchClient _client;
-        protected SearchClient Client => _client ??= CreateSearchServiceClient();
+        protected ISearchClient Client { get { return _client; } }
+
 
         public virtual async Task DeleteIndexAsync(string documentType)
         {
@@ -221,36 +234,89 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
         public virtual async Task<SearchResponse> SearchAsync(string documentType, SearchRequest request)
         {
-            var indexName = AlgoliaSearchHelper.ToAlgoliaIndexName(GetIndexName(documentType), request.Sorting);
+            var indexName = GetIndexName(documentType);
+            var replicaIndexName = AlgoliaSearchHelper.ToAlgoliaIndexName(indexName, request.Sorting);
+
+            var currentIndexName = replicaIndexName;
 
             try
             {
-                if (!await Client.IndexExistsAsync(indexName))
+                if (!await Client.IndexExistsAsync(currentIndexName))
                 {
-                    // Fall back to default index name if replica index not found
-                    _logger.LogWarning("Replica Index {IndexName} not found for document type {DocumentType}.", indexName, documentType);
-
-                    indexName = GetIndexName(documentType);
-                    if (!await Client.IndexExistsAsync(indexName))
+                    if (replicaIndexName != indexName)
                     {
+                        // Fall back to default index name if replica index not found
+                        _logger.LogWarning("Replica index {IndexName} not found for document type {DocumentType}.", currentIndexName, documentType);
+
+                        currentIndexName = indexName;
+
+                        if (!await Client.IndexExistsAsync(currentIndexName))
+                        {
+                            return new SearchResponse();
+                        }
+                    }
+                    else
+                    {
+                        // Fall back to default index name if replica index not found
+                        _logger.LogWarning("Index {IndexName} not found for document type {DocumentType}.", currentIndexName, documentType);
+
                         return new SearchResponse();
                     }
                 }
 
+                var searchQueries = new List<SearchQuery>
+                {
+                    new SearchQuery(_requestBuilder.BuildSearchForHits(currentIndexName, request))
+                };
 
-                var providerQuery = new AlgoliaSearchRequestBuilder().BuildRequest(request);
+                if (request.Filter != null)
+                {
+                    foreach (var aggregation in request.Aggregations.Where(a => HasFilter(request.Filter, a.FieldName)))
+                    {
+                        searchQueries.Add(new SearchQuery(_requestBuilder.BuildSearchForFacets(currentIndexName, request, aggregation)));
+                    }
+                }
 
-                var response = await Client.SearchSingleIndexAsync<SearchDocument>(indexName, new SearchParams(providerQuery));
+                _logger.LogInformation("Starting search on index {IndexName} for document type {DocumentType}.", currentIndexName, documentType);
 
-                var result = response.ToSearchResponse(request);
-                _logger.LogInformation("Search completed on index {IndexName} for document type {DocumentType}.", indexName, documentType);
+                var response = await Client.SearchAsync<SearchDocument>(new SearchMethodParams(searchQueries));
+
+                var result = _responseBuilder.ToSearchResponse(response, request);
+
+                _logger.LogInformation("Search completed on index {IndexName} for document type {DocumentType}.", currentIndexName, documentType);
+
                 return result;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Search failed on index {IndexName} for document type {DocumentType}.", indexName, documentType);
+                _logger.LogError(ex, "Search failed on index {IndexName} for document type {DocumentType}.", currentIndexName, documentType);
                 throw new SearchException(ex.Message, ex);
             }
+        }
+
+        private static bool HasFilter(IFilter filter, string fieldName)
+        {
+            if (filter is INamedFilter)
+            {
+                var namedFilter = filter as INamedFilter;
+                return namedFilter.FieldName.EqualsInvariant(fieldName);
+            }
+            else if (filter is NotFilter)
+            {
+                var notFilter = filter as NotFilter;
+                return HasFilter(notFilter.ChildFilter, fieldName);
+            }
+            else if (filter is AndFilter)
+            {
+                var andFilter = filter as AndFilter;
+                return andFilter.ChildFilters.Any(x => HasFilter(x, fieldName));
+            }
+            else if (filter is OrFilter)
+            {
+                var orFilter = filter as OrFilter;
+                return orFilter.ChildFilters.Any(x => HasFilter(x, fieldName));
+            }
+            return false;
         }
 
         protected virtual AlgoliaIndexDocument ConvertToProviderDocument(IndexDocument document, string documentType)
@@ -351,10 +417,14 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             throw new SearchException($"{message}. Search service name: {_algoliaSearchOptions.AppId}, Scope: {_searchOptions.Scope}", innerException);
         }
 
-        protected virtual SearchClient CreateSearchServiceClient()
+        protected virtual SearchClient CreateSearchClient(ILoggerFactory loggerFactory)
         {
-            var result = new SearchClient(new SearchConfig(_algoliaSearchOptions.AppId, _algoliaSearchOptions.ApiKey));
-            return result;
+            return new SearchClient(GetSearchConfig(), loggerFactory);
+        }
+
+        protected virtual SearchConfig GetSearchConfig()
+        {
+            return new SearchConfig(_algoliaSearchOptions.AppId, _algoliaSearchOptions.ApiKey);
         }
 
         protected virtual AlgoliaIndexSortReplica[] GetSortReplicas(string documentType)

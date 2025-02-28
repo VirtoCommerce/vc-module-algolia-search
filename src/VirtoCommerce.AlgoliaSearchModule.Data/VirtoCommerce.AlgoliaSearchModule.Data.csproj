@@ -12,7 +12,6 @@
         <SonarQubeTestProject>false</SonarQubeTestProject>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="Algolia.Search" Version="7.13.3" />
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
     </ItemGroup>
     <ItemGroup>

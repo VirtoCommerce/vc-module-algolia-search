@@ -11,8 +11,8 @@ The Virto Commerce Algolia Search module implements ISearchProvider defined in t
 
 ## Known limitations
 
-1. Doesn't expand facets to show all values if filter is already selected.
 1. Need to configure replicas settings for sorting results.
+1. Doesn't support Swap indexes.
 1. DateTime fields are indexed as long.
 1. Algolia sets some upper limits to its services to ensure stability and performance for all users. [Read more](https://www.algolia.com/doc/guides/scaling/algolia-service-limits/).
 
