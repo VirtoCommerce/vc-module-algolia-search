@@ -266,7 +266,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                     new SearchQuery(_requestBuilder.BuildSearchForHits(currentIndexName, request))
                 };
 
-                if (request.Filter != null)
+                if (request.Filter != null && request.Aggregations != null)
                 {
                     foreach (var aggregation in request.Aggregations.Where(a => HasFilter(request.Filter, a.FieldName)))
                     {
