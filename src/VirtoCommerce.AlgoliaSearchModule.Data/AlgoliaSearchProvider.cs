@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Algolia.Search.Clients;
-using Algolia.Search.Models.Common;
-using Algolia.Search.Models.Settings;
+using Algolia.Search.Models.Search;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json.Linq;
+using VirtoCommerce.AlgoliaSearchModule.Core;
+using VirtoCommerce.AlgoliaSearchModule.Data.Extensions;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Settings;
 using VirtoCommerce.SearchModule.Core.Exceptions;
@@ -22,31 +23,47 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 {
     public class AlgoliaSearchProvider : ISearchProvider
     {
+        private readonly ISearchClient _client;
+
         private readonly AlgoliaSearchOptions _algoliaSearchOptions;
         private readonly SearchOptions _searchOptions;
         private readonly ISettingsManager _settingsManager;
+        private readonly IAlgoliaSearchRequestBuilder _requestBuilder;
+        private readonly IAlgoliaSearchResponseBuilder _responseBuilder;
+        private readonly ILogger<AlgoliaSearchProvider> _logger;
 
-        public AlgoliaSearchProvider(IOptions<AlgoliaSearchOptions> algoliaSearchOptions, IOptions<SearchOptions> searchOptions, ISettingsManager settingsManager)
+        public AlgoliaSearchProvider(
+            IOptions<AlgoliaSearchOptions> algoliaSearchOptions,
+            IOptions<SearchOptions> searchOptions,
+            ISettingsManager settingsManager,
+            IAlgoliaSearchRequestBuilder requestBuilder,
+            IAlgoliaSearchResponseBuilder responseBuilder,
+            ILogger<AlgoliaSearchProvider> logger,
+            ILoggerFactory loggerFactory)
         {
-            if (algoliaSearchOptions == null)
-                throw new ArgumentNullException(nameof(algoliaSearchOptions));
-
-            if (searchOptions == null)
-                throw new ArgumentNullException(nameof(searchOptions));
+            ArgumentNullException.ThrowIfNull(algoliaSearchOptions);
+            ArgumentNullException.ThrowIfNull(searchOptions);
+            ArgumentNullException.ThrowIfNull(settingsManager);
+            ArgumentNullException.ThrowIfNull(logger);
 
             _algoliaSearchOptions = algoliaSearchOptions.Value;
             _searchOptions = searchOptions.Value;
+            _settingsManager = settingsManager;
+            _requestBuilder = requestBuilder;
+            _responseBuilder = responseBuilder;
+            _logger = logger;
 
-            _settingsManager = settingsManager ?? throw new ArgumentNullException(nameof(settingsManager));
+            _client = new SearchClient(
+                new SearchConfig(_algoliaSearchOptions.AppId, _algoliaSearchOptions.ApiKey),
+                loggerFactory);
         }
 
-        private SearchClient _client;
-        protected SearchClient Client => _client ??= CreateSearchServiceClient();
+        protected ISearchClient Client { get { return _client; } }
+
 
         public virtual async Task DeleteIndexAsync(string documentType)
         {
-            if (string.IsNullOrEmpty(documentType))
-                throw new ArgumentNullException(nameof(documentType));
+            ArgumentNullException.ThrowIfNullOrEmpty(documentType);
 
             try
             {
@@ -54,12 +71,13 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
                 if (await IndexExistsAsync(indexName))
                 {
-                    var index = Client.InitIndex(indexName);
-                    await index.DeleteAsync();
+                    await Client.DeleteIndexAsync(indexName);
+                    _logger.LogInformation("Index {IndexName} deleted successfully.", indexName);
                 }
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Failed to delete index {DocumentType}.", documentType);
                 ThrowException("Failed to delete index", ex);
             }
         }
@@ -69,68 +87,42 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             var indexName = GetIndexName(documentType);
             var providerDocuments = documents.Select(document => ConvertToProviderDocument(document, documentType)).ToList();
 
-            //var indexExists = await IndexExistsAsync(documentType);
-            var index = Client.InitIndex(indexName);
-
             // get current setting, so we can update them with new fields if needed
-            var settings = await index.ExistsAsync() ? await index.GetSettingsAsync() : new IndexSettings();
+            var settings = await GetIndexSettings(indexName);
+
             var settingHasChanges = false;
 
             // define searchable attributes
-            foreach(var document in documents)
+            foreach (var document in documents)
             {
                 foreach (var field in document.Fields.OrderBy(f => f.Name))
                 {
                     var fieldName = AlgoliaSearchHelper.ToAlgoliaFieldName(field.Name);
-                    if (field.IsSearchable)
+                    if (field.IsSearchable &&
+                        !settings.SearchableAttributes.Contains(fieldName))
                     {
-                        if (settings.SearchableAttributes == null)
-                        {
-                            settings.SearchableAttributes = new List<string>();
-                        }
-
-                        if (!settings.SearchableAttributes.Contains(fieldName))
-                        {
-                            settings.SearchableAttributes.Add(fieldName);
-                            settingHasChanges = true;
-                        }
+                        settings.SearchableAttributes.Add(fieldName);
+                        settingHasChanges = true;
                     }
 
-                    if (field.IsFilterable)
-                    {
-                        if (settings.AttributesForFaceting == null)
-                        {
-                            settings.AttributesForFaceting = new List<string>();
-                        }
 
-                        if (!settings.AttributesForFaceting.Contains(fieldName))
-                        {
-                            settings.AttributesForFaceting.Add(fieldName);
-                            settingHasChanges = true;
-                        }
+                    if (field.IsFilterable &&
+                        !settings.AttributesForFaceting.Contains(fieldName))
+                    {
+                        settings.AttributesForFaceting.Add(fieldName);
+                        settingHasChanges = true;
                     }
 
-                    if (field.IsRetrievable)
+                    if (field.IsRetrievable &&
+                        !settings.AttributesToRetrieve.Contains(fieldName))
                     {
-                        if (settings.AttributesToRetrieve == null)
-                        {
-                            settings.AttributesToRetrieve = new List<string>();
-                        }
-
-                        if (!settings.AttributesToRetrieve.Contains(fieldName))
-                        {
-                            settings.AttributesToRetrieve.Add(fieldName);
-                            settingHasChanges = true;
-                        }
+                        settings.AttributesToRetrieve.Add(fieldName);
+                        settingHasChanges = true;
                     }
                 }
             }
 
-            // set replicas
-            var existingReplicas = settings.Replicas;
-
-            if (existingReplicas == null)
-                existingReplicas = new List<string>();
+            var existingReplicas = settings.Replicas ?? [];
 
             var replicaSettings = GetSortReplicas(documentType);
             if (replicaSettings != null && replicaSettings.Length > 0)
@@ -147,24 +139,72 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                     foreach (var replica in replicaSettings)
                     {
                         var replicaName = AlgoliaSearchHelper.ToAlgoliaReplicaName(indexName, replica);
-                        var replicaIndex = Client.InitIndex(replicaName);
+
                         var replicaSetting = new IndexSettings()
                         {
-                            CustomRanking =
-                            new List<string> { replica.IsDescending ? $"desc({replica.FieldName})" : $"asc({replica.FieldName})" }
+                            CustomRanking = [replica.IsDescending ? $"desc({replica.FieldName})" : $"asc({replica.FieldName})"]
                         };
-                        await replicaIndex.SetSettingsAsync(replicaSetting);
+
+                        await Client.SetSettingsAsync(replicaName, replicaSetting);
                     }
                 }
             }
 
             // only update index if there are changes
-            if(settingHasChanges)
-                await index.SetSettingsAsync(settings, forwardToReplicas: true);
+            if (settingHasChanges)
+            {
+                await Client.SetSettingsAsync(indexName, settings, forwardToReplicas: true);
+            }
 
-            var response = await index.SaveObjectsAsync(providerDocuments);
+            try
+            {
+                var response = await Client.SaveObjectsAsync(indexName, providerDocuments);
+                _logger.LogInformation("Indexed {DocumentCount} documents in index {IndexName}.", documents.Count, indexName);
+                return CreateIndexingResult(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while indexing documents in index {IndexName}.", indexName);
+                return new IndexingResult
+                {
+                    Items = providerDocuments.Select(doc => new IndexingResultItem
+                    {
+                        Id = doc.ObjectID,
+                        Succeeded = false,
+                        ErrorMessage = ex.Message
+                    }).ToArray()
+                };
+            }
+        }
 
-            return CreateIndexingResult(response);
+        private async Task<IndexSettings> GetIndexSettings(string indexName)
+        {
+            var settings = new IndexSettings();
+
+            if (await Client.IndexExistsAsync(indexName))
+            {
+                var currentSettings = (await Client.GetSettingsAsync(indexName));
+
+                settings = new IndexSettings
+                {
+                    Ranking = currentSettings.Ranking,
+                    CustomRanking = currentSettings.CustomRanking,
+                    SearchableAttributes = currentSettings.SearchableAttributes,
+                    AttributesForFaceting = currentSettings.AttributesForFaceting,
+                    Replicas = currentSettings.Replicas,
+                    TypoTolerance = currentSettings.TypoTolerance,
+                    RemoveStopWords = currentSettings.RemoveStopWords,
+                    IgnorePlurals = currentSettings.IgnorePlurals,
+                };
+            }
+
+            settings.SearchableAttributes ??= [];
+
+            settings.AttributesForFaceting ??= [];
+
+            settings.AttributesToRetrieve ??= [];
+
+            return settings;
         }
 
         public virtual async Task<IndexingResult> RemoveAsync(string documentType, IList<IndexDocument> documents)
@@ -174,14 +214,15 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             try
             {
                 var indexName = GetIndexName(documentType);
-                var index = Client.InitIndex(indexName);
 
                 var ids = documents.Select(d => d.Id);
-                var response = await index.DeleteObjectsAsync(ids.ToArray());
+                var response = await Client.DeleteObjectsAsync(indexName, ids.ToArray());
                 result = CreateIndexingResult(response);
+                _logger.LogInformation("Removed {DocumentCount} documents from index {IndexName}.", documents.Count, indexName);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Failed to remove documents from index {DocumentType}.", documentType);
                 throw new SearchException(ex.Message, ex);
             }
 
@@ -190,22 +231,85 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
         public virtual async Task<SearchResponse> SearchAsync(string documentType, SearchRequest request)
         {
-            var indexName = AlgoliaSearchHelper.ToAlgoliaIndexName(GetIndexName(documentType), request.Sorting);
+            var indexName = GetIndexName(documentType);
+            var replicaIndexName = AlgoliaSearchHelper.ToAlgoliaIndexName(indexName, request.Sorting);
+
+            var currentIndexName = replicaIndexName;
 
             try
             {
-                var indexClient = Client.InitIndex(indexName);
+                if (!await Client.IndexExistsAsync(currentIndexName))
+                {
+                    if (replicaIndexName != indexName)
+                    {
+                        // Fall back to default index name if replica index not found
+                        _logger.LogWarning("Replica index {IndexName} not found for document type {DocumentType}.", currentIndexName, documentType);
 
-                var providerQuery = new AlgoliaSearchRequestBuilder().BuildRequest(request, indexName);
-                var response = await indexClient.SearchAsync<SearchDocument>(providerQuery);
+                        currentIndexName = indexName;
 
-                var result = response.ToSearchResponse(request);
+                        if (!await Client.IndexExistsAsync(currentIndexName))
+                        {
+                            return new SearchResponse();
+                        }
+                    }
+                    else
+                    {
+                        // Fall back to default index name if replica index not found
+                        _logger.LogWarning("Index {IndexName} not found for document type {DocumentType}.", currentIndexName, documentType);
+
+                        return new SearchResponse();
+                    }
+                }
+
+                var searchQueries = new List<SearchQuery>
+                {
+                    new SearchQuery(_requestBuilder.BuildSearchForHits(currentIndexName, request))
+                };
+
+                if (request.Filter != null && request.Aggregations != null)
+                {
+                    foreach (var aggregation in request.Aggregations.Where(a => HasFilter(request.Filter, a.FieldName)))
+                    {
+                        searchQueries.Add(new SearchQuery(_requestBuilder.BuildSearchForFacets(currentIndexName, request, aggregation)));
+                    }
+                }
+
+                _logger.LogInformation("Starting search on index {IndexName} for document type {DocumentType}.", currentIndexName, documentType);
+
+                var response = await Client.SearchAsync<SearchDocument>(new SearchMethodParams(searchQueries));
+
+                var result = _responseBuilder.ToSearchResponse(response, request);
+
+                _logger.LogInformation("Search completed on index {IndexName} for document type {DocumentType}.", currentIndexName, documentType);
+
                 return result;
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Search failed on index {IndexName} for document type {DocumentType}.", currentIndexName, documentType);
                 throw new SearchException(ex.Message, ex);
             }
+        }
+
+        private static bool HasFilter(IFilter filter, string fieldName)
+        {
+            switch (filter)
+            {
+                case INamedFilter:
+                    var namedFilter = filter as INamedFilter;
+                    return namedFilter.FieldName.EqualsInvariant(fieldName);
+                case NotFilter:
+                    var notFilter = filter as NotFilter;
+                    return HasFilter(notFilter.ChildFilter, fieldName);
+                case AndFilter:
+                    var andFilter = filter as AndFilter;
+                    return andFilter.ChildFilters.Any(x => HasFilter(x, fieldName));
+                case OrFilter:
+                    var orFilter = filter as OrFilter;
+                    return orFilter.ChildFilters.Any(x => HasFilter(x, fieldName));
+            }
+
+            return false;
         }
 
         protected virtual AlgoliaIndexDocument ConvertToProviderDocument(IndexDocument document, string documentType)
@@ -218,11 +322,9 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             {
                 var fieldName = AlgoliaSearchHelper.ToAlgoliaFieldName(field.Name);
 
-                if (result.ContainsKey(fieldName))
+                if (result.TryGetValue(fieldName, out var currentValue))
                 {
                     var newValues = new List<object>();
-
-                    var currentValue = result[fieldName];
 
                     if (currentValue is object[] currentValues)
                     {
@@ -240,42 +342,47 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                 {
                     var isCollection = field.IsCollection || field.Values.Count > 1;
 
-
                     var point = field.Value as GeoPoint;
                     var value = isCollection ? field.Values : field.Value;
 
 
                     // Only support single field geo location
-                    if(field.Value is GeoPoint)
+                    if (field.Value is GeoPoint)
                     {
                         value = new { lat = point.Latitude, lng = point.Longitude };
                         fieldName = "_geoloc";
                     }
 
-                    result.Add(fieldName, value);
+                    if (field.ValueType == IndexDocumentFieldValueType.DateTime)
+                    {
+                        result.Add(fieldName, DateTimeExtension.DateTimeToUnixTimestamp((DateTime)value));
+                    }
+                    else
+                    {
+                        result.Add(fieldName, value);
+                    }
                 }
 
                 // handle special indexationdate field, need to convert it to sortable numeric value
                 // https://www.algolia.com/doc/guides/managing-results/refine-results/sorting/how-to/sort-an-index-by-date/
-                if(field.Name.Equals("indexationdate", StringComparison.OrdinalIgnoreCase))
+                if (field.Name.Equals("indexationdate", StringComparison.OrdinalIgnoreCase))
                 {
-                    result.Add("indexationdate_timestamp", DateTimeToUnixTimestamp((DateTime)field.Value));
+                    result.Add("indexationdate_timestamp", DateTimeExtension.DateTimeToUnixTimestamp((DateTime)field.Value));
                 }
-                
             }
 
             return result;
         }
 
-
-        protected virtual IndexingResult CreateIndexingResult(BatchIndexingResponse results)
+        protected virtual IndexingResult CreateIndexingResult(IList<BatchResponse> results)
         {
             var ids = new List<string>();
 
-            foreach(var response in results.Responses)
+            foreach (var response in results)
             {
                 ids.AddRange(response.ObjectIDs);
             }
+
             return new IndexingResult
             {
                 Items = ids.Select(r => new IndexingResultItem
@@ -289,7 +396,6 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
 
         protected virtual string GetIndexName(string documentType)
         {
-            // Use different index for each document type
             return string.Join("-", _searchOptions.Scope, documentType).ToLowerInvariant();
         }
 
@@ -304,15 +410,14 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             throw new SearchException($"{message}. Search service name: {_algoliaSearchOptions.AppId}, Scope: {_searchOptions.Scope}", innerException);
         }
 
-        protected virtual SearchClient CreateSearchServiceClient()
+        protected virtual SearchConfig GetSearchConfig()
         {
-            var result = new SearchClient(_algoliaSearchOptions.AppId, _algoliaSearchOptions.ApiKey);
-            return result;
+            return new SearchConfig(_algoliaSearchOptions.AppId, _algoliaSearchOptions.ApiKey);
         }
 
         protected virtual AlgoliaIndexSortReplica[] GetSortReplicas(string documentType)
         {
-            var replicas = _settingsManager.GetValue("VirtoCommerce.Search.AlgoliaSearch.SortReplicas", new[] { "product:name-asc", "product:name-desc", "product:price-asc", "product:price-desc", "indexationdate_timestamp-desc" });
+            var replicas = _settingsManager.GetValue<string[]>(Core.ModuleConstants.Settings.Indexing.SortReplicas);
 
             if (replicas == null)
                 return null;
@@ -329,7 +434,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                 {
                     replicaDocumentType = replicaArray[0];
                     if (!replicaDocumentType.Equals(documentType, StringComparison.OrdinalIgnoreCase))
-                        continue; // skip if type doesn't match
+                        continue;
 
                     fieldNameWithSort = replicaArray[1];
                 }
@@ -353,13 +458,6 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             }
 
             return sortReplicas.ToArray();
-        }
-
-        public static double DateTimeToUnixTimestamp(DateTime dateTime)
-        {
-            DateTime unixStart = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc);
-            long unixTimeStampInTicks = (dateTime.ToUniversalTime() - unixStart).Ticks;
-            return (double)unixTimeStampInTicks / TimeSpan.TicksPerSecond;
         }
     }
 }
