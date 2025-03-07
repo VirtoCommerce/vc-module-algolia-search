@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using VirtoCommerce.AlgoliaSearchModule.Core;
 using VirtoCommerce.SearchModule.Core.Model;
 
 namespace VirtoCommerce.AlgoliaSearchModule.Data
@@ -48,9 +49,9 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                 //}
 
                 if (sorting.IsDescending)
-                        name = $"{name}{fieldName}_desc";
-                    else
-                        name = $"{name}{fieldName}_asc";
+                    name = $"{name}{fieldName}_desc";
+                else
+                    name = $"{name}{fieldName}_asc";
                 //}
 
                 return $"{masterIndexName}_{name}";
@@ -62,12 +63,16 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
         public static string ToAlgoliaReplicaName(string masterIndexName, AlgoliaIndexSortReplica replica)
         {
             var name = string.Empty;
-            if(replica.IsDescending)
+            if (replica.IsDescending)
+            {
                 name = $"{ToAlgoliaFieldName(replica.FieldName)}_desc";
+            }
             else
+            {
                 name = $"{ToAlgoliaFieldName(replica.FieldName)}_asc";
+            }
 
-            if(replica.IsVirtual)
+            if (replica.IsVirtual)
             {
                 name = $"virtual({name})";
             }

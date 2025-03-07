@@ -2,20 +2,27 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Algolia.Search.Models.Search;
+using VirtoCommerce.AlgoliaSearchModule.Core;
+using VirtoCommerce.AlgoliaSearchModule.Data.Extensions;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.SearchModule.Core.Model;
 using SearchRequest = VirtoCommerce.SearchModule.Core.Model.SearchRequest;
 
 namespace VirtoCommerce.AlgoliaSearchModule.Data
 {
-    public class AlgoliaSearchRequestBuilder
+    public class AlgoliaSearchRequestBuilder : IAlgoliaSearchRequestBuilder
     {
-        public Query BuildRequest(SearchRequest request, string indexName)
+        public SearchForHits BuildSearchForHits(string indexName, SearchRequest request)
         {
-            var query = new Query(request.SearchKeywords)
+            ArgumentNullException.ThrowIfNullOrEmpty(indexName);
+            ArgumentNullException.ThrowIfNull(request);
+
+            var query = new SearchForHits
             {
-                Offset = request?.Skip,
-                Length = request?.Take,
+                IndexName = indexName,
+                Query = request.SearchKeywords,
+                Offset = request.Skip,
+                Length = request.Take,
                 RestrictSearchableAttributes = GetSearchableAttributes(request),
                 Filters = GetFilters(request),
                 Facets = GetAggregations(request),
@@ -25,20 +32,41 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             return query;
         }
 
-        private List<string> GetSearchableAttributes(SearchRequest request)
+        public SearchForFacets BuildSearchForFacets(string indexName, SearchRequest request, AggregationRequest aggregation)
+        {
+            ArgumentNullException.ThrowIfNullOrEmpty(indexName);
+            ArgumentNullException.ThrowIfNull(request);
+            ArgumentNullException.ThrowIfNull(aggregation);
+
+            var query = new SearchForFacets
+            {
+                IndexName = indexName,
+                Query = request.SearchKeywords,
+                Offset = 0,
+                Length = 0,
+                RestrictSearchableAttributes = GetSearchableAttributes(request),
+                Filters = GetFilters(request, aggregation.FieldName),
+                Facets = [AlgoliaSearchHelper.ToAlgoliaFieldName(aggregation.FieldName)],
+                AroundLatLng = GetGeoFilter(request)
+            };
+
+            return query;
+        }
+
+        protected static List<string> GetSearchableAttributes(SearchRequest request)
         {
             // Ignore default _content field
             return request?.SearchFields?.ToList()
-                .Where(x=>!x.ToLowerInvariant().Equals("_content"))
+                .Where(x => !x.ToLowerInvariant().Equals("_content"))
                 .Select(x => x.ToLowerInvariant()).ToList();
         }
 
-        private string GetFilters(SearchRequest request)
+        protected string GetFilters(SearchRequest request, string exlcudedFacetFilter = null)
         {
-            return GetFilterQueryRecursive(request.Filter);
+            return GetFilterQueryRecursive(request.Filter, exlcudedFacetFilter);
         }
 
-        private string GetGeoFilter(SearchRequest request)
+        protected static string GetGeoFilter(SearchRequest request)
         {
             if (request.Sorting != null && request.Sorting.Count > 0 && request.Sorting[0] is GeoDistanceSortingField)
             {
@@ -49,7 +77,7 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             return null;
         }
 
-        protected virtual string GetFilterQueryRecursive(IFilter filter)
+        protected virtual string GetFilterQueryRecursive(IFilter filter, string exlcudeFacetFilter)
         {
             var result = string.Empty;
 
@@ -60,11 +88,11 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                     break;
 
                 case TermFilter termFilter:
-                    result = CreateTermFilter(termFilter);
+                    result = CreateTermFilter(termFilter, exlcudeFacetFilter);
                     break;
 
                 case RangeFilter rangeFilter:
-                    result = CreateRangeFilter(rangeFilter);
+                    result = CreateRangeFilter(rangeFilter, exlcudeFacetFilter);
                     break;
 
                 //case GeoDistanceFilter geoDistanceFilter:
@@ -72,15 +100,15 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
                 //    break;
 
                 case NotFilter notFilter:
-                    result = CreateNotFilter(notFilter);
+                    result = CreateNotFilter(notFilter, exlcudeFacetFilter);
                     break;
 
                 case AndFilter andFilter:
-                    result = CreateAndFilter(andFilter);
+                    result = CreateAndFilter(andFilter, exlcudeFacetFilter);
                     break;
 
                 case OrFilter orFilter:
-                    result = CreateOrFilter(orFilter);
+                    result = CreateOrFilter(orFilter, exlcudeFacetFilter);
                     break;
 
                     //case WildCardTermFilter wildcardTermFilter:
@@ -120,13 +148,18 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
         //    };
         //}
 
-        protected virtual string CreateTermFilter(TermFilter termFilter)
+        protected virtual string CreateTermFilter(TermFilter termFilter, string exlcudeFacetFilter)
         {
             var result = string.Empty;
 
+            if (termFilter.FieldName.Equals(exlcudeFacetFilter, StringComparison.OrdinalIgnoreCase))
+            {
+                return result;
+            }
+
             foreach (var val in termFilter.Values)
             {
-                if(!result.IsNullOrEmpty())
+                if (!result.IsNullOrEmpty())
                 {
                     result = $"{result} OR ";
                 }
@@ -136,9 +169,14 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             return result;
         }
 
-        protected virtual string CreateRangeFilter(RangeFilter rangeFilter)
+        protected virtual string CreateRangeFilter(RangeFilter rangeFilter, string exlcudeFacetFilter)
         {
             var result = string.Empty;
+
+            if (rangeFilter.FieldName.Equals(exlcudeFacetFilter, StringComparison.OrdinalIgnoreCase))
+            {
+                return result;
+            }
 
             var fieldName = AlgoliaSearchHelper.ToAlgoliaFieldName(rangeFilter.FieldName);
             foreach (var value in rangeFilter.Values)
@@ -163,50 +201,66 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
         //    };
         //}
 
-        protected virtual string CreateNotFilter(NotFilter notFilter)
+        protected virtual string CreateNotFilter(NotFilter notFilter, string exlcudeFacetFilter)
         {
             var result = string.Empty;
 
             if (notFilter?.ChildFilter != null)
             {
-                result = $"NOT {GetFilterQueryRecursive(notFilter.ChildFilter)}";
-            }
-
-            return result;
-        }
-
-        protected virtual string CreateAndFilter(AndFilter andFilter)
-        {
-            string result = string.Empty;
-
-            if (andFilter?.ChildFilters != null)
-            {
-                foreach (var childQuery in andFilter.ChildFilters)
+                var filter = GetFilterQueryRecursive(notFilter.ChildFilter, exlcudeFacetFilter);
+                if (!string.IsNullOrEmpty(filter))
                 {
-                    if (!result.IsNullOrEmpty())
-                    {
-                        result = $"{result} AND ";
-                    }
-                    result = $"{result}({GetFilterQueryRecursive(childQuery)})";
+                    result = $"NOT {filter}";
                 }
             }
 
             return result;
         }
 
-        protected virtual string CreateOrFilter(OrFilter orFilter)
+        protected virtual string CreateAndFilter(AndFilter andFilter, string exlcudeFacetFilter)
         {
-            string result = string.Empty;
+            var result = string.Empty;
+
+            if (andFilter?.ChildFilters != null)
+            {
+                foreach (var childQuery in andFilter.ChildFilters)
+                {
+                    var filter = GetFilterQueryRecursive(childQuery, exlcudeFacetFilter);
+                    if (string.IsNullOrEmpty(filter))
+                    {
+                        continue;
+                    }
+
+                    if (!result.IsNullOrEmpty())
+                    {
+                        result = $"{result} AND ";
+                    }
+                    result = $"{result}({filter})";
+                }
+            }
+
+            return result;
+        }
+
+        protected virtual string CreateOrFilter(OrFilter orFilter, string exlcudeFacetFilter)
+        {
+            var result = string.Empty;
 
             if (orFilter?.ChildFilters != null)
             {
                 foreach (var childQuery in orFilter.ChildFilters)
                 {
+                    var filter = GetFilterQueryRecursive(childQuery, exlcudeFacetFilter);
+                    if (string.IsNullOrEmpty(filter))
+                    {
+                        continue;
+                    }
+
                     if (!result.IsNullOrEmpty())
                     {
                         result = $"{result} OR ";
                     }
-                    result = $"{result}({GetFilterQueryRecursive(childQuery)})";
+                    result = $"{result}({filter})";
                 }
             }
 
@@ -218,13 +272,13 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             var lowerFilter = string.Empty;
             if (!string.IsNullOrEmpty(value.Lower))
             {
-                if(value.IncludeLower)
+                if (value.IncludeLower)
                 {
-                    lowerFilter = $"{fieldName}>={value.Lower}";
+                    lowerFilter = $"{fieldName}>={GetAlogilaRangeValue(value.Lower)}";
                 }
                 else
                 {
-                    lowerFilter = $"{fieldName}>{value.Lower}";
+                    lowerFilter = $"{fieldName}>{GetAlogilaRangeValue(value.Lower)}";
                 }
             }
 
@@ -233,20 +287,29 @@ namespace VirtoCommerce.AlgoliaSearchModule.Data
             {
                 if (value.IncludeUpper)
                 {
-                    upperFilter = $"{fieldName}<={value.Upper}";
+                    upperFilter = $"{fieldName}<={GetAlogilaRangeValue(value.Upper)}";
                 }
                 else
                 {
-                    upperFilter = $"{fieldName}<{value.Upper}";
+                    upperFilter = $"{fieldName}<{GetAlogilaRangeValue(value.Upper)}";
                 }
             }
 
-            if(!string.IsNullOrEmpty(lowerFilter) && !string.IsNullOrEmpty(upperFilter))
+            if (!string.IsNullOrEmpty(lowerFilter) && !string.IsNullOrEmpty(upperFilter))
             {
                 return $"{lowerFilter} AND {upperFilter}";
             }
 
             return $"{lowerFilter}{upperFilter}";
+        }
+
+        private static string GetAlogilaRangeValue(string value)
+        {
+            if (DateTime.TryParse(value, out var dateTime))
+            {
+                return DateTimeExtension.DateTimeToUnixTimestamp(dateTime).ToString();
+            }
+            return value;
         }
 
         /// <summary>

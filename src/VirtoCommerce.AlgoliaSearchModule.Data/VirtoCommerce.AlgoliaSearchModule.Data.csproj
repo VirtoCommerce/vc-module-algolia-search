@@ -12,9 +12,9 @@
         <SonarQubeTestProject>false</SonarQubeTestProject>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="Algolia.Search" Version="6.16.0" />
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
-        <PackageReference Include="VirtoCommerce.Platform.Core" Version="3.800.0" />
-        <PackageReference Include="VirtoCommerce.SearchModule.Core" Version="3.800.0" />
+    </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\VirtoCommerce.AlgoliaSearchModule.Core\VirtoCommerce.AlgoliaSearchModule.Core.csproj" />
     </ItemGroup>
 </Project>
