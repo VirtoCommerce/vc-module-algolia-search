@@ -35,7 +35,6 @@
         <dependency id="VirtoCommerce.Search" version="3.804.0" />
     </dependencies>
     <groups>
-        <group>commerce</group>
     </groups>
     <useFullTypeNameInSwagger>false</useFullTypeNameInSwagger>
 </module>
