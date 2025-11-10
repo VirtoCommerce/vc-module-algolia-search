@@ -1,0 +1,14 @@
+{
+  "settings": {
+    "VirtoCommerce.Search.AlgoliaSearch": {
+      "SortReplicas": {
+        "title": "Lajittelu",
+        "description": "Määritä lajittelu kullekin indeksoidulle dokumenttityypille. Esimerkki: product:name-asc mahdollistaa lajittelun nimen mukaan nousevassa järjestyksessä. Lisätietoja täällä: https://www.algolia.com/doc/guides/managing-results/refine-results/sorting/how-to/sort-by-attribute"
+      },
+      "Version": {
+        "title": "Algolia Search -versio",
+        "description": "Versio määrittää palveluntarjoajalle saatavilla olevat ominaisuudet. Esimerkiksi virtuaaliset replikat ovat käytettävissä lajitteluun vain Premium-versiossa"
+      }
+    }
+  }
+}

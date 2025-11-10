@@ -1,0 +1,14 @@
+{
+  "settings": {
+    "VirtoCommerce.Search.AlgoliaSearch": {
+      "SortReplicas": {
+        "title": "並べ替え",
+        "description": "インデックス化された各ドキュメントタイプの並べ替えを指定します。例：product:name-asc は、名前で昇順に並べ替えられるようになります。詳細はこちら：https://www.algolia.com/doc/guides/managing-results/refine-results/sorting/how-to/sort-by-attribute"
+      },
+      "Version": {
+        "title": "Algolia Search エディション",
+        "description": "バージョンによってプロバイダーで利用可能な機能が決まります。例えば、仮想レプリカは Premium エディションでのみ並べ替えに利用可能です"
+      }
+    }
+  }
+}

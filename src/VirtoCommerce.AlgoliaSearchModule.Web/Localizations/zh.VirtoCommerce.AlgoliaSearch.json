@@ -1,0 +1,14 @@
+{
+  "settings": {
+    "VirtoCommerce.Search.AlgoliaSearch": {
+      "SortReplicas": {
+        "title": "排序",
+        "description": "为每个索引的文档类型指定排序方式。例如：product:name-asc 将允许按名称升序排序。更多信息请见：https://www.algolia.com/doc/guides/managing-results/refine-results/sorting/how-to/sort-by-attribute"
+      },
+      "Version": {
+        "title": "Algolia Search 版本",
+        "description": "版本将决定提供商可用的功能。例如，虚拟副本仅在 Premium 版本中支持用于排序"
+      }
+    }
+  }
+}
