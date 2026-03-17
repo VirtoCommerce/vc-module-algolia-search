@@ -7,7 +7,7 @@
         },
         "Version": {
           "title": "Algolia Search Edition",
-          "description": "Version will determine features that are available to the provider. For example virtual replicas for sorting only available in Premium edition."
+          "description": "Version will determine features that are available to the provider. For example, virtual replicas are only available for sorting in the Premium edition"
         }
       }
     }

@@ -1,0 +1,14 @@
+{
+  "settings": {
+    "VirtoCommerce.Search.AlgoliaSearch": {
+      "SortReplicas": {
+        "title": "Tri",
+        "description": "Spécifiez le tri pour chaque type de document indexé. Exemple : product:name-asc permettra de trier par nom dans l'ordre croissant. Plus d'informations ici : https://www.algolia.com/doc/guides/managing-results/refine-results/sorting/how-to/sort-by-attribute"
+      },
+      "Version": {
+        "title": "Édition Algolia Search",
+        "description": "La version détermine les fonctionnalités disponibles pour le fournisseur. Par exemple, les répliques virtuelles ne sont disponibles que pour le tri dans l'édition Premium"
+      }
+    }
+  }
+}
