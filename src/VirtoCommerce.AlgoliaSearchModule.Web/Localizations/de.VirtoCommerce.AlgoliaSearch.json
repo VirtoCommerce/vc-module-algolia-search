@@ -1,0 +1,14 @@
+{
+  "settings": {
+    "VirtoCommerce.Search.AlgoliaSearch": {
+      "SortReplicas": {
+        "title": "Sortierung",
+        "description": "Geben Sie die Sortierung für jeden indizierten Dokumenttyp an. Beispiel: product:name-asc ermöglicht die Sortierung nach Name in aufsteigender Reihenfolge. Weitere Informationen hier: https://www.algolia.com/doc/guides/managing-results/refine-results/sorting/how-to/sort-by-attribute"
+      },
+      "Version": {
+        "title": "Algolia Search Edition",
+        "description": "Die Version bestimmt die Funktionen, die dem Anbieter zur Verfügung stehen. Virtuelle Replikate sind beispielsweise nur in der Premium-Edition zum Sortieren verfügbar"
+      }
+    }
+  }
+}

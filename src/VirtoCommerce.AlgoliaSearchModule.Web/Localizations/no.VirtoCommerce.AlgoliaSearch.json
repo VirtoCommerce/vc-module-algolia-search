@@ -1,0 +1,14 @@
+{
+  "settings": {
+    "VirtoCommerce.Search.AlgoliaSearch": {
+      "SortReplicas": {
+        "title": "Sortering",
+        "description": "Angi sortering for hver indekserte dokumenttype. Eksempel: product:name-asc vil tillate sortering etter navn i stigende rekkefølge. Mer informasjon her: https://www.algolia.com/doc/guides/managing-results/refine-results/sorting/how-to/sort-by-attribute"
+      },
+      "Version": {
+        "title": "Algolia Search-utgave",
+        "description": "Versjonen bestemmer hvilke funksjoner som er tilgjengelige for leverandøren. For eksempel er virtuelle replikaer kun tilgjengelige for sortering i Premium-utgaven"
+      }
+    }
+  }
+}

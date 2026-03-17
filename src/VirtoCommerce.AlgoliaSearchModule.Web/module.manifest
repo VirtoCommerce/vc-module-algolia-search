@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <module xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
     <id>VirtoCommerce.AlgoliaSearch</id>
-    <version>3.803.0</version>
+    <version>3.1000.0</version>
     <version-tag />
-    <platformVersion>3.854.0</platformVersion>
+    <platformVersion>3.1002.0</platformVersion>
 
     <apps>
         <app id="algolia_search">
@@ -26,13 +26,13 @@
     <projectUrl>https://github.com/VirtoCommerce/vc-module-algolia-search</projectUrl>
     <iconUrl>Modules/$(VirtoCommerce.AlgoliaSearch)/Content/logo.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <releaseNotes>Update to NET8 and Stable 10 release.</releaseNotes>
-    <copyright>Copyright © 2020 - 2025 Virto Commerce. All rights reserved</copyright>
+    <releaseNotes>Update to NET10 and Stable 14 release.</releaseNotes>
+    <copyright>Copyright © 2020 - 2026 Virto Commerce. All rights reserved</copyright>
     <tags>algolia search</tags>
     <assemblyFile>VirtoCommerce.AlgoliaSearchModule.Web.dll</assemblyFile>
     <moduleType>VirtoCommerce.AlgoliaSearchModule.Web.Module, VirtoCommerce.AlgoliaSearchModule.Web</moduleType>
     <dependencies>
-        <dependency id="VirtoCommerce.Search" version="3.804.0" />
+        <dependency id="VirtoCommerce.Search" version="3.1000.0" />
     </dependencies>
     <groups>
     </groups>
