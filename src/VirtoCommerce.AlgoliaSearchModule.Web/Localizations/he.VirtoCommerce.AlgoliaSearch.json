@@ -1,0 +1,14 @@
+{
+  "settings": {
+    "VirtoCommerce.Search.AlgoliaSearch": {
+      "SortReplicas": {
+        "title": "מיון",
+        "description": "יש לציין את המיון עבור כל סוג מסמך שעובר אינדוקס. דוגמה: product:name-asc תאפשר מיון לפי שם בסדר עולה. מידע נוסף: https://www.algolia.com/doc/guides/managing-results/refine-results/sorting/how-to/sort-by-attribute"
+      },
+      "Version": {
+        "title": "מהדורת Algolia Search",
+        "description": "המהדורה קובעת אילו תכונות זמינות לספק. לדוגמה, רפליקות וירטואליות זמינות למיון רק במהדורת Premium"
+      }
+    }
+  }
+}

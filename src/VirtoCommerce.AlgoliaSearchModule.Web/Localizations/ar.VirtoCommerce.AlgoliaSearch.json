@@ -1,0 +1,14 @@
+{
+  "settings": {
+    "VirtoCommerce.Search.AlgoliaSearch": {
+      "SortReplicas": {
+        "title": "الفرز",
+        "description": "حدد الفرز لكل نوع من المستندات المفهرسة. مثال: product:name-asc يتيح الفرز حسب الاسم بترتيب تصاعدي. لمزيد من المعلومات: https://www.algolia.com/doc/guides/managing-results/refine-results/sorting/how-to/sort-by-attribute"
+      },
+      "Version": {
+        "title": "إصدار Algolia Search",
+        "description": "يحدد الإصدار الميزات المتاحة للمزوّد. على سبيل المثال، النسخ المتماثلة الافتراضية متاحة للفرز في إصدار Premium فقط"
+      }
+    }
+  }
+}
